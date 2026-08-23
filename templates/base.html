@@ -69,9 +69,10 @@
             </div>
         </div>
     </aside>
-    <div class="flex-1 min-w-0">
-        {# Mobile top bar — brand + account, mirrors a native app's header. #}
-        <header class="lg:hidden sticky top-0 z-30 bg-gradient-to-r from-[#0B1626] to-[#16294D]">
+    {# pt-[60px] clears the fixed mobile top bar below; no offset needed at lg. #}
+    <div class="flex-1 min-w-0 pt-[60px] lg:pt-0">
+        {# Mobile top bar — fixed so it stays pinned to the viewport top while scrolling. #}
+        <header class="lg:hidden fixed top-0 inset-x-0 z-40 bg-gradient-to-r from-[#0B1626] to-[#16294D] shadow-sm">
             <div class="flex items-center gap-3 px-4 py-3">
                 <img src="{% static 'logo.png' %}" alt="Architelligence" class="h-8 w-auto shrink-0 rounded-md">
                 <p class="flex-1 min-w-0 truncate font-bold text-[15px] tracking-tight text-white">Member Portal</p>
@@ -82,7 +83,7 @@
             </div>
         </header>
 
-        <header class="lg:sticky lg:top-0 z-10 border-b border-gray-200/60 bg-[#F4F6F9]/80 backdrop-blur">
+        <header class="lg:sticky lg:top-0 z-10 border-b border-gray-200/60 bg-[#F4F6F9] lg:bg-[#F4F6F9]/80 lg:backdrop-blur">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-5 flex items-end justify-between gap-4">
                 <div class="min-w-0">
                     <h1 class="text-lg lg:text-xl font-bold tracking-tight text-gray-900 truncate">{% block page_title %}{% endblock %}</h1>
@@ -171,9 +172,9 @@
 </div>
 
 {# ── Mobile: slide-up "more" sheet ────────────────────────────────── #}
-<div id="more-sheet" class="lg:hidden fixed inset-0 z-40 hidden">
+<div id="more-sheet" class="lg:hidden fixed inset-0 z-50 hidden">
     <div id="more-backdrop" class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"></div>
-    <div class="absolute inset-x-0 bottom-0 rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl">
+    <div class="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl">
         <div class="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
             <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0B1626] to-[#16294D] text-sm font-semibold uppercase text-white">
                 {% if user.first_name %}{{ user.first_name|slice:":1" }}{% if user.last_name %}{{ user.last_name|slice:":1" }}{% endif %}{% else %}{{ user.username|slice:":1" }}{% endif %}
@@ -189,11 +190,12 @@
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
         </div>
-        <nav class="px-3 py-3">
-            {% include "partials/nav_link.html" with url_name="profile" label="Profile" icon="user" %}
-            {% include "partials/nav_link.html" with url_name="accounts" label="Accounts" icon="bank" %}
-            {% include "partials/nav_link.html" with url_name="messages" label="Messages" icon="chat" %}
-            {% include "partials/nav_link.html" with url_name="external_deposits" label="External deposits" icon="deposit" %}
+        <nav class="px-3 py-2 space-y-0.5">
+            {% include "partials/sheet_link.html" with url_name="profile" label="Profile" icon="user" %}
+            {% include "partials/sheet_link.html" with url_name="accounts" label="Accounts" icon="bank" %}
+            {% include "partials/sheet_link.html" with url_name="transactions" label="Transactions" icon="list" %}
+            {% include "partials/sheet_link.html" with url_name="messages" label="Messages" icon="chat" %}
+            {% include "partials/sheet_link.html" with url_name="external_deposits" label="External deposits" icon="deposit" %}
         </nav>
         <div class="border-t border-gray-100 px-5 py-4">
             <form method="post" action="{% url 'logout' %}">
