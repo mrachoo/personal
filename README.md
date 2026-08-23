@@ -98,6 +98,13 @@ Long-polling, no HTTP port opened. Updates are processed one at a time (no
 
 ## Bot safety mechanisms
 
+- **Scoping**: admins only see the users they created via `/create`. `visible_users()` /
+  `find_user_for()` in `bot/handlers.py` gate every lookup, list, and write — the Users
+  menu, `/balance`, `/history`, `/credit`, `/debit`, `/rename`, `/setpassword`,
+  `/deactivate`, `/resendinvite`, `/msg`, `/address`, `/card`, `/audit`, and the request
+  queue. Out-of-scope usernames return "No such user" rather than "not allowed", so the
+  bot never confirms that another admin's account exists. The **owner is unscoped** and
+  sees everything. This mirrors the `/staff-admin/` queryset scoping.
 - **Authorization**: every command and button press first checks the sender's Telegram
   ID against the `Admin` table (`bot/handlers.py`: `command_auth_gate` /
   `callback_auth_gate`, registered in handler group `-1` so they run before anything

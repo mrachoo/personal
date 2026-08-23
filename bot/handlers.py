@@ -77,6 +77,27 @@ def find_user(username):
     return User.objects.filter(username=username.strip().lower()).first()
 
 
+def visible_users(admin_telegram_id):
+    """Users an admin is allowed to see: the ones they created via /create.
+    The owner is unscoped and sees everyone."""
+    admin = Admin.objects.filter(telegram_id=admin_telegram_id).first()
+    if admin is None:
+        return User.objects.none()
+    if admin.role == Admin.Role.OWNER:
+        return User.objects.all()
+    return User.objects.filter(created_by=admin)
+
+
+def find_user_for(admin_telegram_id, username):
+    """Scoped lookup. Returns None for users outside the admin's scope, so
+    callers report 'no such user' and never leak that the account exists."""
+    return visible_users(admin_telegram_id).filter(username=username.strip().lower()).first()
+
+
+def visible_requests(admin_telegram_id):
+    return ServiceRequest.objects.filter(user__in=visible_users(admin_telegram_id))
+
+
 def local(dt):
     """Render stored UTC timestamps in the configured display timezone."""
     return timezone.localtime(dt)
@@ -220,11 +241,8 @@ async def cmd_create(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def _setpassword_core(admin_telegram_id, username, new_password):
-    user = find_user(username)
-    # A non-creator gets the same "not_found" response as a truly missing
-    # username, so /setpassword can't be used to probe which usernames exist
-    # under other admins (mirrors the staff-admin queryset scoping).
-    if user is None or user.created_by is None or user.created_by.telegram_id != admin_telegram_id:
+    user = find_user_for(admin_telegram_id, username)
+    if user is None:
         return ("not_found", username)
     try:
         password_validation.validate_password(new_password, user)
@@ -290,10 +308,10 @@ def _format_request_line(sr):
     return line
 
 
-def _list_requests(n):
+def _list_requests(admin_telegram_id, n):
     return [
         _format_request_line(sr)
-        for sr in ServiceRequest.objects.select_related("user")[:n]
+        for sr in visible_requests(admin_telegram_id).select_related("user")[:n]
     ]
 
 
@@ -305,7 +323,7 @@ async def cmd_requests(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except ValueError:
             await reply(update, "Usage: /requests [n]")
             return
-    lines = await sync_to_async(_list_requests, thread_sensitive=True)(n)
+    lines = await sync_to_async(_list_requests, thread_sensitive=True)(admin.telegram_id, n)
     if not lines:
         await reply(update, "No portal requests yet.")
         return
@@ -313,7 +331,7 @@ async def cmd_requests(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def _decide_request_core(admin_telegram_id, reference, status):
-    sr = ServiceRequest.objects.select_related("user").filter(reference=reference.upper()).first()
+    sr = visible_requests(admin_telegram_id).select_related("user").filter(reference=reference.upper()).first()
     if sr is None:
         return ("not_found", reference)
     if sr.status != ServiceRequest.Status.PENDING:
@@ -512,8 +530,8 @@ def _format_address(user):
     return "\n".join(lines) if lines else "(no delivery address on file)"
 
 
-def _address_set_core(username, fields):
-    user = find_user(username)
+def _address_set_core(admin_telegram_id, username, fields):
+    user = find_user_for(admin_telegram_id, username)
     if user is None:
         return ("not_found", username)
     for f in ADDRESS_FIELDS:
@@ -531,7 +549,7 @@ async def cmd_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = args[0]
 
     if len(args) == 1:
-        user = await sync_to_async(find_user, thread_sensitive=True)(username)
+        user = await sync_to_async(find_user_for, thread_sensitive=True)(admin.telegram_id, username)
         if user is None:
             await reply(update, f"No such user '{username}'.")
             return
@@ -547,7 +565,7 @@ async def cmd_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await reply(update, f"Couldn't parse that address.\n{ADDRESS_USAGE}")
             return
     result = await sync_to_async(process_once, thread_sensitive=True)(
-        update.update_id, _address_set_core, username, fields
+        update.update_id, _address_set_core, admin.telegram_id, username, fields
     )
     if result is DUPLICATE:
         return
@@ -564,7 +582,7 @@ async def cmd_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def _msg_core(admin_telegram_id, username, body):
-    user = find_user(username)
+    user = find_user_for(admin_telegram_id, username)
     if user is None:
         return ("not_found", username)
     PortalMessage.objects.create(
@@ -626,8 +644,8 @@ def _format_card(app):
     return "\n".join(lines)
 
 
-def _card_show_core(username):
-    user = find_user(username)
+def _card_show_core(admin_telegram_id, username):
+    user = find_user_for(admin_telegram_id, username)
     if user is None:
         return ("not_found", username)
     app = CardApplication.objects.filter(user=user).first()
@@ -636,8 +654,8 @@ def _card_show_core(username):
     return ("ok", _format_card(app))
 
 
-def _card_start_core(username):
-    user = find_user(username)
+def _card_start_core(admin_telegram_id, username):
+    user = find_user_for(admin_telegram_id, username)
     if user is None:
         return ("not_found", username)
     app, created = CardApplication.objects.get_or_create(user=user)
@@ -646,8 +664,8 @@ def _card_start_core(username):
     return ("ok", _format_card(app))
 
 
-def _card_set_core(username, stage, state, tracking):
-    user = find_user(username)
+def _card_set_core(admin_telegram_id, username, stage, state, tracking):
+    user = find_user_for(admin_telegram_id, username)
     if user is None:
         return ("not_found", username)
     app = CardApplication.objects.filter(user=user).first()
@@ -676,15 +694,15 @@ async def cmd_card(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = args[0]
 
     if len(args) == 1:
-        result = await sync_to_async(_card_show_core, thread_sensitive=True)(username)
+        result = await sync_to_async(_card_show_core, thread_sensitive=True)(admin.telegram_id, username)
     elif len(args) == 2 and args[1].lower() == "start":
         result = await sync_to_async(process_once, thread_sensitive=True)(
-            update.update_id, _card_start_core, username
+            update.update_id, _card_start_core, admin.telegram_id, username
         )
     elif len(args) in (3, 4):
         tracking = args[3] if len(args) == 4 else None
         result = await sync_to_async(process_once, thread_sensitive=True)(
-            update.update_id, _card_set_core, username, args[1].lower(), args[2].lower(), tracking
+            update.update_id, _card_set_core, admin.telegram_id, username, args[1].lower(), args[2].lower(), tracking
         )
     else:
         await reply(update, CARD_USAGE)
@@ -772,9 +790,11 @@ async def _parse_amount_command(update, context, usage):
         return None
     reason = " ".join(args[2:])
 
-    user = await sync_to_async(find_user, thread_sensitive=True)(username)
+    admin = context.user_data.get("admin")
+    user = await sync_to_async(find_user_for, thread_sensitive=True)(
+        admin.telegram_id if admin else 0, username
+    )
     if user is None:
-        admin = context.user_data.get("admin")
         logger.info(
             "admin=%s command failed: no such user '%s'",
             admin.telegram_id if admin else "?", username,
@@ -899,7 +919,7 @@ async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(args) != 1:
         await reply(update, "Usage: /balance <username>")
         return
-    user = await sync_to_async(find_user, thread_sensitive=True)(args[0])
+    user = await sync_to_async(find_user_for, thread_sensitive=True)(admin.telegram_id, args[0])
     if user is None:
         await reply(update, f"No such user '{args[0]}'.")
         return
@@ -907,8 +927,8 @@ async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await reply(update, f"{user.username}: ${balance:,}")
 
 
-def _history_rows(username, n):
-    user = find_user(username)
+def _history_rows(admin_telegram_id, username, n):
+    user = find_user_for(admin_telegram_id, username)
     if user is None:
         return None
     entries = list(user.ledger_entries.all()[:n])
@@ -936,7 +956,7 @@ async def cmd_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await reply(update, "n must be a positive integer.")
             return
 
-    result = await sync_to_async(_history_rows, thread_sensitive=True)(username, n)
+    result = await sync_to_async(_history_rows, thread_sensitive=True)(admin.telegram_id, username, n)
     if result is None:
         await reply(update, f"No such user '{username}'.")
         return
@@ -954,8 +974,11 @@ async def cmd_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await reply(update, "\n".join(lines))
 
 
-def _audit_rows(n):
-    return list(LedgerEntry.objects.select_related("user").all()[:n])
+def _audit_rows(admin_telegram_id, n):
+    return list(
+        LedgerEntry.objects.select_related("user")
+        .filter(user__in=visible_users(admin_telegram_id))[:n]
+    )
 
 
 async def cmd_audit(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -978,7 +1001,7 @@ async def cmd_audit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await reply(update, "Usage: /audit [n]")
         return
 
-    entries = await sync_to_async(_audit_rows, thread_sensitive=True)(n)
+    entries = await sync_to_async(_audit_rows, thread_sensitive=True)(admin.telegram_id, n)
     if not entries:
         await reply(update, "No ledger entries yet.")
         return
@@ -995,8 +1018,8 @@ async def cmd_audit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- /rename -----------------------------------------------------------------
 
 
-def _rename_core(username, new_username):
-    user = find_user(username)
+def _rename_core(admin_telegram_id, username, new_username):
+    user = find_user_for(admin_telegram_id, username)
     if user is None:
         return ("not_found", username)
     new_username = new_username.strip().lower()
@@ -1020,7 +1043,7 @@ async def cmd_rename(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await reply(update, "Usage: /rename <username> <new_username>")
         return
     result = await sync_to_async(process_once, thread_sensitive=True)(
-        update.update_id, _rename_core, args[0], args[1]
+        update.update_id, _rename_core, admin.telegram_id, args[0], args[1]
     )
     if result is DUPLICATE:
         return
@@ -1044,8 +1067,8 @@ async def cmd_rename(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- /deactivate, /reactivate --------------------------------------------------
 
 
-def _set_active_core(username, active):
-    user = find_user(username)
+def _set_active_core(admin_telegram_id, username, active):
+    user = find_user_for(admin_telegram_id, username)
     if user is None:
         return ("not_found", username)
     user.is_active = active
@@ -1060,7 +1083,7 @@ async def _cmd_set_active(update, context, active, usage):
         await reply(update, usage)
         return
     result = await sync_to_async(process_once, thread_sensitive=True)(
-        update.update_id, _set_active_core, args[0], active
+        update.update_id, _set_active_core, admin.telegram_id, args[0], active
     )
     if result is DUPLICATE:
         return
@@ -1086,8 +1109,8 @@ async def cmd_reactivate(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- /resendinvite -------------------------------------------------------------
 
 
-def _resendinvite_core(username):
-    user = find_user(username)
+def _resendinvite_core(admin_telegram_id, username):
+    user = find_user_for(admin_telegram_id, username)
     if user is None:
         return ("not_found", username)
     user.invite_tokens.filter(used_at__isnull=True).update(used_at=timezone.now())
@@ -1102,7 +1125,7 @@ async def cmd_resendinvite(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await reply(update, "Usage: /resendinvite <username>")
         return
     result = await sync_to_async(process_once, thread_sensitive=True)(
-        update.update_id, _resendinvite_core, args[0]
+        update.update_id, _resendinvite_core, admin.telegram_id, args[0]
     )
     if result is DUPLICATE:
         return
@@ -1262,9 +1285,9 @@ def _main_menu(admin):
     return MAIN_MENU_TEXT, _kb(rows)
 
 
-def _menu_requests_view():
+def _menu_requests_view(admin_telegram_id):
     pending = list(
-        ServiceRequest.objects.select_related("user")
+        visible_requests(admin_telegram_id).select_related("user")
         .filter(status=ServiceRequest.Status.PENDING)
         .order_by("created_at")[:10]
     )
@@ -1294,8 +1317,8 @@ def _menu_requests_view():
     return text, _kb(rows)
 
 
-def _request_detail_view(reference):
-    sr = ServiceRequest.objects.select_related("user").filter(reference=reference.upper()).first()
+def _request_detail_view(admin_telegram_id, reference):
+    sr = visible_requests(admin_telegram_id).select_related("user").filter(reference=reference.upper()).first()
     if sr is None:
         return f"Request {reference} no longer exists.", _kb([[("‹ Requests", "menu:requests")]])
     u = sr.user
@@ -1336,8 +1359,8 @@ def _request_detail_view(reference):
     return "\n".join(lines), _kb(rows)
 
 
-def _menu_users_view():
-    users = list(User.objects.order_by("username")[:25])
+def _menu_users_view(admin_telegram_id):
+    users = list(visible_users(admin_telegram_id).order_by("username")[:25])
     text = f"👤 Users — {len(users)} accounts. Tap one to view and manage it, or create a new one."
     rows = []
     for u in users:
@@ -1348,8 +1371,8 @@ def _menu_users_view():
     return text, _kb(rows)
 
 
-def _user_detail_view(username):
-    u = find_user(username)
+def _user_detail_view(admin_telegram_id, username):
+    u = find_user_for(admin_telegram_id, username)
     if u is None:
         return f"No such user '{username}'.", _kb([[("‹ Users", "menu:users")]])
     app = CardApplication.objects.filter(user=u).first()
@@ -1380,8 +1403,8 @@ def _user_detail_view(username):
     return "\n".join(lines), _kb(rows)
 
 
-def _user_history_view(username):
-    u = find_user(username)
+def _user_history_view(admin_telegram_id, username):
+    u = find_user_for(admin_telegram_id, username)
     if u is None:
         return f"No such user '{username}'.", _kb([[("‹ Users", "menu:users")]])
     entries = list(u.ledger_entries.all()[:10])
@@ -1395,8 +1418,8 @@ def _user_history_view(username):
     return "\n".join(lines), _kb(rows)
 
 
-def _toggle_active_core(username):
-    user = find_user(username)
+def _toggle_active_core(admin_telegram_id, username):
+    user = find_user_for(admin_telegram_id, username)
     if user is None:
         return ("not_found", username)
     user.is_active = not user.is_active
@@ -1445,8 +1468,8 @@ def _card_stage_actions(app, username):
     return []
 
 
-def _card_detail_view(username):
-    u = find_user(username)
+def _card_detail_view(admin_telegram_id, username):
+    u = find_user_for(admin_telegram_id, username)
     if u is None:
         return f"No such user '{username}'.", _kb([[("‹ Cards", "menu:cards")]])
     app = CardApplication.objects.filter(user=u).first()
@@ -1476,8 +1499,12 @@ def _card_detail_view(username):
     return "\n".join(lines), _kb(rows)
 
 
-def _menu_cards_view():
-    apps = list(CardApplication.objects.select_related("user").order_by("user__username")[:25])
+def _menu_cards_view(admin_telegram_id):
+    apps = list(
+        CardApplication.objects.select_related("user")
+        .filter(user__in=visible_users(admin_telegram_id))
+        .order_by("user__username")[:25]
+    )
     text = (
         f"💳 Cards — {len(apps)} open applications. Tap one to review and "
         "advance it, stage by stage."
@@ -1495,9 +1522,12 @@ def _menu_cards_view():
     return text, _kb(rows)
 
 
-def _card_new_view():
+def _card_new_view(admin_telegram_id):
     have_app = CardApplication.objects.values_list("user_id", flat=True)
-    users = list(User.objects.filter(is_active=True).exclude(id__in=have_app).order_by("username")[:25])
+    users = list(
+        visible_users(admin_telegram_id)
+        .filter(is_active=True).exclude(id__in=have_app).order_by("username")[:25]
+    )
     if not users:
         return "Every active user already has a card application.", _kb([[("‹ Cards", "menu:cards")]])
     text = "＋ Start a card application — tap the user it's for:"
@@ -1572,8 +1602,8 @@ def _menu_specialist_view(telegram_id):
     return text, _kb([BACK_ROW])
 
 
-def _menu_audit_view():
-    entries = _audit_rows(10)
+def _menu_audit_view(admin_telegram_id):
+    entries = _audit_rows(admin_telegram_id, 10)
     lines = ["📒 Audit — the last 10 ledger entries across all users\n"]
     if not entries:
         lines.append("No ledger entries yet.")
@@ -1605,7 +1635,7 @@ async def on_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if section == "main":
         text, kb = _main_menu(admin)
     elif section == "users":
-        text, kb = await sync_to_async(_menu_users_view, thread_sensitive=True)()
+        text, kb = await sync_to_async(_menu_users_view, thread_sensitive=True)(admin.telegram_id)
     elif section == "credits":
         text = MENU_CREDITS_TEXT
         kb = _kb([
@@ -1614,13 +1644,13 @@ async def on_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             BACK_ROW,
         ])
     elif section == "cards":
-        text, kb = await sync_to_async(_menu_cards_view, thread_sensitive=True)()
+        text, kb = await sync_to_async(_menu_cards_view, thread_sensitive=True)(admin.telegram_id)
     elif section == "requests":
-        text, kb = await sync_to_async(_menu_requests_view, thread_sensitive=True)()
+        text, kb = await sync_to_async(_menu_requests_view, thread_sensitive=True)(admin.telegram_id)
     elif section == "specialist":
         text, kb = await sync_to_async(_menu_specialist_view, thread_sensitive=True)(admin.telegram_id)
     elif section == "audit":
-        text, kb = await sync_to_async(_menu_audit_view, thread_sensitive=True)()
+        text, kb = await sync_to_async(_menu_audit_view, thread_sensitive=True)(admin.telegram_id)
     elif section == "admins":
         text, kb = await sync_to_async(_menu_admins_view, thread_sensitive=True)()
     elif section == "help":
@@ -1718,8 +1748,8 @@ async def _finish_flow_create(update, context, admin, tokens):
         )
 
 
-def _user_address_view(username):
-    u = find_user(username)
+def _user_address_view(admin_telegram_id, username):
+    u = find_user_for(admin_telegram_id, username)
     if u is None:
         return f"No such user '{username}'.", _kb([[("‹ Users", "menu:users")]])
     text = (
@@ -1756,7 +1786,7 @@ async def _finish_flow_address(update, context, admin, body, username):
         )
         return
     result = await sync_to_async(process_once, thread_sensitive=True)(
-        update.update_id, _address_set_core, username, fields
+        update.update_id, _address_set_core, admin.telegram_id, username, fields
     )
     if result is DUPLICATE:
         return
@@ -1815,7 +1845,7 @@ async def _finish_flow_amount(update, context, admin, flow, tokens, fixed_userna
     if amount is None:
         await reply(update, "The amount must be a positive number — e.g. 500 Weekly bonus or 500.43 Refund")
         return
-    user = await sync_to_async(find_user, thread_sensitive=True)(username)
+    user = await sync_to_async(find_user_for, thread_sensitive=True)(admin.telegram_id, username)
     if user is None:
         await reply(update, f"No such user '{username}' — check the username and send again, or Cancel above.")
         return
@@ -1885,7 +1915,7 @@ async def on_ui_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
     elif ns == "req" and action == "view":
-        view = (_request_detail_view, (arg,))
+        view = (_request_detail_view, (admin.telegram_id, arg))
 
     elif ns == "usr":
         if action == "new":
@@ -1907,7 +1937,7 @@ async def on_ui_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await _edit_menu_message(query, text, kb)
             return
         if action == "addr":
-            view = (_user_address_view, (arg,))
+            view = (_user_address_view, (admin.telegram_id, arg))
         elif action == "addredit":
             context.user_data["pending_input"] = {"flow": "address", "username": arg}
             await query.answer()
@@ -1916,7 +1946,7 @@ async def on_ui_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         elif action == "addrclear":
             result = await sync_to_async(process_once, thread_sensitive=True)(
-                update.update_id, _address_set_core, arg, None
+                update.update_id, _address_set_core, admin.telegram_id, arg, None
             )
             if result is DUPLICATE:
                 await query.answer("Already cleared.")
@@ -1925,14 +1955,14 @@ async def on_ui_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 logger.info("admin=%s cleared address for user=%s (menu)", admin.telegram_id, arg)
                 await query.answer("Address removed.")
-            view = (_user_address_view, (arg,))
+            view = (_user_address_view, (admin.telegram_id, arg))
         if action == "view":
-            view = (_user_detail_view, (arg,))
+            view = (_user_detail_view, (admin.telegram_id, arg))
         elif action == "hist":
-            view = (_user_history_view, (arg,))
+            view = (_user_history_view, (admin.telegram_id, arg))
         elif action == "act":
             result = await sync_to_async(process_once, thread_sensitive=True)(
-                update.update_id, _toggle_active_core, arg
+                update.update_id, _toggle_active_core, admin.telegram_id, arg
             )
             if result is DUPLICATE:
                 await query.answer("Already done.")
@@ -1943,10 +1973,10 @@ async def on_ui_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 state = "reactivated" if user.is_active else "deactivated"
                 logger.info("admin=%s %s user=%s (menu)", admin.telegram_id, state, user.username)
                 await query.answer(f"{user.username} {state}.")
-            view = (_user_detail_view, (arg,))
+            view = (_user_detail_view, (admin.telegram_id, arg))
         elif action == "inv":
             result = await sync_to_async(process_once, thread_sensitive=True)(
-                update.update_id, _resendinvite_core, arg
+                update.update_id, _resendinvite_core, admin.telegram_id, arg
             )
             if result is DUPLICATE:
                 await query.answer("Already sent.")
@@ -1960,16 +1990,16 @@ async def on_ui_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await query.answer(f"Invite emailed to {user.email}.", show_alert=True)
                 except EmailSendError as exc:
                     await query.answer(f"Email failed: {exc}", show_alert=True)
-            view = (_user_detail_view, (arg,))
+            view = (_user_detail_view, (admin.telegram_id, arg))
 
     elif ns == "card":
         if action == "view":
-            view = (_card_detail_view, (arg,))
+            view = (_card_detail_view, (admin.telegram_id, arg))
         elif action == "new":
-            view = (_card_new_view, ())
+            view = (_card_new_view, (admin.telegram_id,))
         elif action == "start":
             result = await sync_to_async(process_once, thread_sensitive=True)(
-                update.update_id, _card_start_core, arg
+                update.update_id, _card_start_core, admin.telegram_id, arg
             )
             if result is DUPLICATE:
                 await query.answer("Already opened.")
@@ -1978,11 +2008,11 @@ async def on_ui_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 logger.info("admin=%s opened card application for %s (menu)", admin.telegram_id, arg)
                 await query.answer("Application opened.")
-            view = (_card_detail_view, (arg,))
+            view = (_card_detail_view, (admin.telegram_id, arg))
         elif action == "set" and len(parts) == 5:
             stage, state = parts[3], parts[4]
             result = await sync_to_async(process_once, thread_sensitive=True)(
-                update.update_id, _card_set_core, arg, stage, state, None
+                update.update_id, _card_set_core, admin.telegram_id, arg, stage, state, None
             )
             if result is DUPLICATE:
                 await query.answer("Already done.")
@@ -1993,7 +2023,7 @@ async def on_ui_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "admin=%s set card %s=%s for %s (menu)", admin.telegram_id, stage, state, arg
                 )
                 await query.answer(f"{stage} → {state}")
-            view = (_card_detail_view, (arg,))
+            view = (_card_detail_view, (admin.telegram_id, arg))
 
     elif ns == "adm":
         if action == "view":
@@ -2065,7 +2095,7 @@ async def on_request_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 msg = f"{sr.reference} declined."
             await query.answer(msg, show_alert=True)
     # Re-render the queue so the decided request drops off the button list.
-    text, kb = await sync_to_async(_menu_requests_view, thread_sensitive=True)()
+    text, kb = await sync_to_async(_menu_requests_view, thread_sensitive=True)(admin.telegram_id)
     try:
         await query.edit_message_text(text, reply_markup=kb)
     except BadRequest as exc:
