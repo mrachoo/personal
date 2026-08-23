@@ -1,0 +1,25 @@
+{% comment %}Generic flat-style specialist avatar. Expects: variant ("woman"/"man"), class{% endcomment %}
+{% if variant == "man" %}
+<svg class="{{ class }}" viewBox="0 0 64 64" aria-hidden="true">
+    <clipPath id="av-man-clip"><circle cx="32" cy="32" r="32"/></clipPath>
+    <circle cx="32" cy="32" r="32" fill="#E9EFF9"/>
+    <g clip-path="url(#av-man-clip)">
+        <path d="M14 58c1-10 8.5-14.5 18-14.5S49 48 50 58v6H14v-6z" fill="#16294D"/>
+        <path d="M32 41l-4.5 5.5L32 53l4.5-6.5L32 41z" fill="#fff"/>
+        <circle cx="32" cy="27" r="9.5" fill="#EFC3A0"/>
+        <path d="M22.5 25.5c0-6 4-10.5 9.5-10.5s9.5 4.5 9.5 10.5c-1.5-4.5-5-6.5-9.5-6.5s-8 2-9.5 6.5z" fill="#1F3A66"/>
+    </g>
+</svg>
+{% else %}
+<svg class="{{ class }}" viewBox="0 0 64 64" aria-hidden="true">
+    <clipPath id="av-woman-clip"><circle cx="32" cy="32" r="32"/></clipPath>
+    <circle cx="32" cy="32" r="32" fill="#E9EFF9"/>
+    <g clip-path="url(#av-woman-clip)">
+        <path d="M32 11c-9.5 0-15.5 6.5-15.5 15.5V38c0 5 2 8 2 8h27s2-3 2-8V26.5C47.5 17.5 41.5 11 32 11z" fill="#1F3A66"/>
+        <path d="M14 58c1-10 8.5-14.5 18-14.5S49 48 50 58v6H14v-6z" fill="#16294D"/>
+        <path d="M32 41l-4.5 5.5L32 53l4.5-6.5L32 41z" fill="#fff"/>
+        <circle cx="32" cy="27.5" r="9" fill="#EFC3A0"/>
+        <path d="M32 14.5c-7 0-11.5 5-11.5 11.5 2-4.5 6-7 11.5-7s9.5 2.5 11.5 7c0-6.5-4.5-11.5-11.5-11.5z" fill="#1F3A66"/>
+    </g>
+</svg>
+{% endif %}

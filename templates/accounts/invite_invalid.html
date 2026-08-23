@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Invite not found - Member Portal{% endblock %}
+{% block content %}
+<div class="max-w-sm mx-auto bg-white rounded-2xl p-8 text-center shadow-2xl shadow-blue-950/40">
+    <span class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-500">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/>
+        </svg>
+    </span>
+    <h1 class="text-xl font-bold tracking-tight text-gray-900 mb-2">This invite link isn't valid</h1>
+    <p class="text-sm leading-relaxed text-gray-500">
+        It may have expired, already been used, or the account may no longer be active.
+        Contact an admin for a new invite.
+    </p>
+</div>
+{% endblock %}

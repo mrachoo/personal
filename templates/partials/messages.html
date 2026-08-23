@@ -1,0 +1,21 @@
+{% if messages %}
+    <ul class="mb-6 space-y-2.5">
+        {% for message in messages %}
+            <li class="flex items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium
+                       {% if message.tags == 'error' %}border-red-100 bg-red-50 text-red-700
+                       {% elif message.tags == 'success' %}border-emerald-100 bg-emerald-50 text-emerald-700
+                       {% else %}border-blue-100 bg-blue-50 text-blue-800{% endif %}">
+                <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    {% if message.tags == 'error' %}
+                        <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
+                    {% elif message.tags == 'success' %}
+                        <circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>
+                    {% else %}
+                        <circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>
+                    {% endif %}
+                </svg>
+                {{ message }}
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}

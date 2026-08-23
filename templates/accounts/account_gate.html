@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Verify account - Member Portal{% endblock %}
+{% block content %}
+<div class="w-fit mx-auto mb-5 flex items-center justify-center gap-2 rounded-full bg-white/10 ring-1 ring-inset ring-white/10 backdrop-blur px-4 py-1.5 text-xs font-medium text-blue-100">
+    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5" y="11" width="14" height="9" rx="1.5"/>
+        <path d="M8 11V7a4 4 0 018 0v4"/>
+    </svg>
+    Secure, encrypted connection
+</div>
+<div class="max-w-sm mx-auto bg-white rounded-2xl p-8 shadow-2xl shadow-blue-950/40">
+    <h1 class="text-xl font-bold tracking-tight text-gray-900 mb-1">Verify your account</h1>
+    <p class="text-sm text-gray-500 mb-6">Enter your Case ID to continue.</p>
+
+    {% if error %}
+        <div class="mb-5 flex items-start gap-2.5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
+            </svg>
+            {{ error }}
+        </div>
+    {% endif %}
+
+    <form method="post" class="space-y-5">
+        {% csrf_token %}
+        <div>
+            <label for="account_id" class="block text-[13px] font-semibold text-gray-700">Case ID</label>
+            <input type="text" name="account_id" id="account_id" autofocus required placeholder="XXXXX-XXXXX"
+                   class="mt-1.5 block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm uppercase tracking-widest text-gray-900 placeholder-gray-300 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900">
+        </div>
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit"
+                class="w-full rounded-xl bg-gradient-to-br from-[#0B1626] to-[#16294D] py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
+            Verify Case ID
+        </button>
+    </form>
+    <p class="mt-5 text-xs text-gray-400">
+        Your Case ID was included in your welcome email. You'll need it each time you log in.
+    </p>
+</div>
+
+<div class="max-w-sm mx-auto mt-5 flex items-start gap-3 rounded-2xl border border-amber-200/60 bg-amber-50 px-5 py-4 shadow-lg shadow-blue-950/20">
+    <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 3.5L1.8 20.5h20.4L12 3.5z"/>
+        <path d="M12 9.5v5M12 17.2v.1" stroke="#78350F" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+    </svg>
+    <p class="text-[13px] leading-relaxed text-amber-900">
+        <span class="font-semibold">Restricted access.</span>
+        This portal is not open to the public and does not offer self-enrollment. Access is
+        limited to individuals with an active account who received sign-on credentials from
+        an assigned Admin Specialist.
+    </p>
+</div>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#F4F6F9]">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Member Portal{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="h-full font-sans text-gray-900 antialiased">
+{% if user.is_authenticated %}
+<div class="flex min-h-screen">
+    <aside class="w-64 shrink-0 bg-gradient-to-b from-[#0B1626] to-[#16294D] flex flex-col">
+        <div class="px-5 pt-6 pb-5 flex items-center gap-3">
+            <img src="{% static 'logo.png' %}" alt="Logo" class="h-9 w-auto">
+            <div class="leading-tight">
+                <p class="font-bold text-[15px] tracking-tight text-white">Member Portal</p>
+                <p class="text-[11px] font-medium text-blue-200/50">Online banking</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-3 pb-4 space-y-1">
+            <p class="px-3.5 pt-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-blue-200/40">Overview</p>
+            {% include "partials/nav_link.html" with url_name="dashboard" label="Dashboard" icon="home" %}
+            {% include "partials/nav_link.html" with url_name="profile" label="Profile" icon="user" %}
+            {% include "partials/nav_link.html" with url_name="accounts" label="Accounts" icon="bank" %}
+            {% include "partials/nav_link.html" with url_name="transactions" label="Transactions" icon="list" %}
+            {% include "partials/nav_link.html" with url_name="messages" label="Messages" icon="chat" %}
+
+            <p class="px-3.5 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-blue-200/40">Services</p>
+            {% include "partials/nav_link.html" with url_name="transfers" label="Transfers" icon="swap" %}
+            {% include "partials/nav_link.html" with url_name="external_deposits" label="External deposits" icon="deposit" %}
+            {% include "partials/nav_link.html" with url_name="card" label="Card" icon="card" %}
+        </nav>
+        <div class="px-4 py-4 border-t border-white/10">
+            <div class="flex items-center gap-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 ring-1 ring-inset ring-white/15 text-white font-semibold text-sm uppercase">
+                    {% if user.first_name %}{{ user.first_name|slice:":1" }}{% if user.last_name %}{{ user.last_name|slice:":1" }}{% endif %}{% else %}{{ user.username|slice:":1" }}{% endif %}
+                </span>
+                <div class="min-w-0 flex-1 leading-tight">
+                    <p class="text-[13px] font-semibold text-white truncate">
+                        {% if user.first_name or user.last_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}
+                    </p>
+                    <p class="text-[11px] text-blue-200/50 truncate">{{ user.email }}</p>
+                </div>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" title="Log out" aria-label="Log out"
+                            class="flex h-8 w-8 items-center justify-center rounded-lg text-blue-200/60 transition hover:bg-white/10 hover:text-white">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 4H6a1 1 0 00-1 1v14a1 1 0 001 1h3"/>
+                            <path d="M14 8l4 4-4 4M18 12H9"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </aside>
+    <div class="flex-1 min-w-0">
+        <header class="sticky top-0 z-10 border-b border-gray-200/60 bg-[#F4F6F9]/80 backdrop-blur">
+            <div class="max-w-4xl mx-auto px-8 py-5 flex items-end justify-between gap-4">
+                <div class="min-w-0">
+                    <h1 class="text-xl font-bold tracking-tight text-gray-900 truncate">{% block page_title %}{% endblock %}</h1>
+                    <p class="mt-0.5 text-[13px] text-gray-500">{% block page_subtitle %}{% endblock %}</p>
+                </div>
+                <p class="hidden sm:block shrink-0 text-[13px] font-medium text-gray-400">{% now "l, F j, Y" %}</p>
+            </div>
+        </header>
+        <main class="max-w-4xl mx-auto px-8 py-8">
+            {% include "partials/messages.html" %}
+{% else %}
+<div class="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#0B1626] to-[#16294D] flex flex-col justify-center px-4 py-12">
+    {% include "partials/monument.html" with class="absolute inset-x-0 bottom-0 w-full h-2/3 text-blue-300 opacity-[0.08] pointer-events-none" %}
+    {% comment %}
+    ── YOUR LOGO GOES HERE ─────────────────────────────────────────────
+    1. Drop your logo file into the project's  static/  folder
+       (e.g.  static/logo.png).
+    2. Delete the <span ...>M</span> badge line below.
+    3. Uncomment the <img> line and set its src filename to match.
+    The "Member Portal" text stays directly underneath it.
+    ────────────────────────────────────────────────────────────────────
+    {% endcomment %}
+    <div class="relative z-10 flex flex-col items-center gap-3 mb-8">
+        <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 text-white font-bold text-lg ring-1 ring-white/15 backdrop-blur">M</span>
+        {# <img src="{% static 'logo.png' %}" alt="Logo" class="h-24 w-auto"> #}
+        <span class="font-bold text-white text-xl tracking-tight">Member Portal</span>
+    </div>
+    <div class="relative z-10">
+        {% include "partials/messages.html" %}
+{% endif %}
+            {% block content %}{% endblock %}
+{% if user.is_authenticated %}
+        </main>
+        {# Footer links are placeholders (href="#") — real destinations to be added later. #}
+        <footer class="border-t border-gray-200/75 bg-white">
+            <div class="max-w-4xl mx-auto px-8 py-10">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-8">
+                    <div>
+                        <p class="mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Company</p>
+                        <ul class="space-y-2 text-[13px]">
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">About us</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Careers</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Newsroom</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Investor relations</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Contact us</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Support</p>
+                        <ul class="space-y-2 text-[13px]">
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Help center</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">FAQs</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Accessibility</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">System status</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Forms &amp; documents</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Legal</p>
+                        <ul class="space-y-2 text-[13px]">
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Privacy policy</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Terms of service</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Cookie policy</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Disclosures</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Security</p>
+                        <ul class="space-y-2 text-[13px]">
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Security center</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Report fraud</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Protect your account</a></li>
+                            <li><a href="#" class="text-gray-500 transition hover:text-blue-950">Responsible disclosure</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-10 flex flex-col items-start justify-between gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:items-center">
+                    <div class="flex items-center gap-2.5">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#0B1626] to-[#16294D] text-xs font-bold text-white">M</span>
+                        <span class="text-[13px] font-semibold text-gray-900">Member Portal</span>
+                    </div>
+                    <p class="text-xs text-gray-400">© 2026 Member Portal. All rights reserved.</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+</div>
+{% else %}
+    </div>
+    {# Placeholder links (href="#") — real destinations to be added later. #}
+    <div class="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-xs">
+        <a href="#" class="text-blue-200/60 transition hover:text-white">Privacy policy</a>
+        <a href="#" class="text-blue-200/60 transition hover:text-white">Terms of service</a>
+        <a href="#" class="text-blue-200/60 transition hover:text-white">Security</a>
+        <a href="#" class="text-blue-200/60 transition hover:text-white">Accessibility</a>
+        <a href="#" class="text-blue-200/60 transition hover:text-white">Help center</a>
+    </div>
+    <p class="relative z-10 mt-3 text-center text-xs text-blue-200/50">
+        © 2026 Member Portal. All rights reserved.
+    </p>
+</div>
+{% endif %}
+</body>
+</html>

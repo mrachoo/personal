@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% load humanize money %}
+{% block title %}Transfers - Member Portal{% endblock %}
+{% block page_title %}Transfers{% endblock %}
+{% block page_subtitle %}Send money to another account.{% endblock %}
+{% block content %}
+
+<div class="flex flex-col lg:flex-row gap-6 items-start">
+<div class="w-full max-w-xl">
+    <div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-7 pt-7">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2.5">From</p>
+            <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#0B1626] to-[#16294D] p-5 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[13px] font-medium text-blue-200/70">Checking account</p>
+                        <p class="mt-0.5 font-mono text-sm tracking-[0.15em] text-blue-50">{{ user.account_number }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[11px] font-medium uppercase tracking-wider text-blue-200/60">Available</p>
+                        <p class="mt-0.5 text-lg font-bold tabular-nums">{{ balance|usd }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="px-7 py-6 space-y-5">
+            {% csrf_token %}
+            <div>
+                <label for="routing_number" class="block text-[13px] font-semibold text-gray-700">Routing number</label>
+                <div class="relative mt-1.5">
+                    <input type="text" id="routing_number" name="routing_number" inputmode="numeric" maxlength="9" placeholder="9-digit routing number"
+                           value="{{ request.POST.routing_number|default:'' }}" autocomplete="off"
+                           class="block w-full rounded-xl border {% if errors.routing_number %}border-red-300{% else %}border-gray-300{% endif %} bg-white px-3.5 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900">
+                    <span id="routing-indicator" class="pointer-events-none absolute inset-y-0 right-3.5 hidden items-center"></span>
+                </div>
+                {% if errors.routing_number %}<p class="mt-1.5 text-[13px] text-red-600">{{ errors.routing_number }}</p>{% endif %}
+                <p id="routing-bank" class="mt-1.5 hidden items-center gap-1.5 text-[13px] font-medium"></p>
+            </div>
+            <div>
+                <label for="recipient" class="block text-[13px] font-semibold text-gray-700">Recipient account number</label>
+                <input type="text" id="recipient" name="recipient" inputmode="numeric" placeholder="12-digit account number"
+                       value="{{ request.POST.recipient|default:'' }}"
+                       class="mt-1.5 block w-full rounded-xl border {% if errors.recipient %}border-red-300{% else %}border-gray-300{% endif %} bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900">
+                {% if errors.recipient %}<p class="mt-1.5 text-[13px] text-red-600">{{ errors.recipient }}</p>{% endif %}
+            </div>
+            <div>
+                <label for="amount" class="block text-[13px] font-semibold text-gray-700">Amount</label>
+                <div class="relative mt-1.5">
+                    <input type="number" id="amount" name="amount" min="0.01" step="0.01" placeholder="0.00"
+                           value="{{ request.POST.amount|default:'' }}"
+                           class="block w-full rounded-xl border {% if errors.amount %}border-red-300{% else %}border-gray-300{% endif %} bg-white px-3.5 py-2.5 pr-16 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900">
+                    <span class="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-[13px] font-medium text-gray-400">USD</span>
+                </div>
+                {% if errors.amount %}<p class="mt-1.5 text-[13px] text-red-600">{{ errors.amount }}</p>
+                {% else %}<p class="mt-1.5 text-xs text-gray-400">Available: {{ balance|usd }}</p>{% endif %}
+            </div>
+            <div>
+                <label for="note" class="block text-[13px] font-semibold text-gray-700">Note <span class="font-normal text-gray-400">(optional)</span></label>
+                <input type="text" id="note" name="note" maxlength="255" placeholder="What's this for?"
+                       value="{{ request.POST.note|default:'' }}"
+                       class="mt-1.5 block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900">
+            </div>
+
+            <div class="rounded-xl bg-gray-50 px-5 py-4 space-y-2 text-[13px]">
+                <div class="flex justify-between text-gray-500">
+                    <span>Transfer amount</span>
+                    <span class="tabular-nums" data-summary="amount">&mdash;</span>
+                </div>
+                <div class="flex justify-between text-gray-500">
+                    <span>Fee</span>
+                    <span class="tabular-nums">$0.00</span>
+                </div>
+                <div class="flex justify-between border-t border-gray-200/75 pt-2 font-semibold text-gray-900">
+                    <span>Total</span>
+                    <span class="tabular-nums" data-summary="total">&mdash;</span>
+                </div>
+            </div>
+
+            <button type="submit"
+                    class="w-full rounded-xl bg-gradient-to-br from-[#0B1626] to-[#16294D] py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90">
+                Submit transfer request
+            </button>
+            <p class="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="5" y="11" width="14" height="9" rx="1.5"/>
+                    <path d="M8 11V7a4 4 0 018 0v4"/>
+                </svg>
+                All transfers are reviewed and approved by an administrator.
+            </p>
+        </form>
+    </div>
+
+    {% include "partials/request_list.html" %}
+</div>
+
+<aside class="w-full lg:w-64 shrink-0 space-y-4">
+    <div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm p-5">
+        <div class="flex items-center gap-2.5 mb-3.5">
+            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-900">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>
+                </svg>
+            </span>
+            <h2 class="text-[13px] font-semibold text-gray-900">Before you send</h2>
+        </div>
+        <ul class="space-y-2.5 text-[13px] leading-relaxed text-gray-500">
+            <li>Double-check the routing and account numbers — requests can't be edited once submitted.</li>
+            <li>Every transfer is reviewed by an administrator before any money moves.</li>
+            <li>You'll get a reference code to track your request's status.</li>
+        </ul>
+    </div>
+    <div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm p-5">
+        <div class="flex items-center gap-2.5 mb-3.5">
+            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.6-.9-1.7-1.5-3-1.5-1.9 0-3.5 1-3.5 2.5S10 12.5 12 13s3.5 1 3.5 2.5S13.9 18 12 18c-1.3 0-2.4-.6-3-1.5M12 6.5v11"/>
+                </svg>
+            </span>
+            <h2 class="text-[13px] font-semibold text-gray-900">No transfer fees</h2>
+        </div>
+        <p class="text-[13px] leading-relaxed text-gray-500">
+            Transfers never carry a fee — the amount you send is exactly what leaves your account.
+        </p>
+    </div>
+</aside>
+</div>
+
+<script>
+    (function () {
+        var amount = document.getElementById("amount");
+        var out = document.querySelectorAll("[data-summary]");
+        function update() {
+            var v = parseFloat(amount.value);
+            var text = isNaN(v) || v <= 0 ? "—" : "$" + v.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            out.forEach(function (el) { el.textContent = text; });
+        }
+        amount.addEventListener("input", update);
+        update();
+    })();
+
+    (function () {
+        var input = document.getElementById("routing_number");
+        var bankLine = document.getElementById("routing-bank");
+        var indicator = document.getElementById("routing-indicator");
+        var timer = null;
+        var lastQueried = null;
+
+        var CHECK = '<svg class="h-4 w-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+        var CROSS = '<svg class="h-4 w-4 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8l-8 8M8 8l8 8"/></svg>';
+        var SPINNER = '<svg class="h-4 w-4 animate-spin text-gray-300" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity="0.25"/><path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>';
+        var BANK_ICON = '<svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-6 9 6"/><path d="M4 10v9M20 10v9M9 10v9M15 10v9"/><path d="M3 19h18"/></svg>';
+
+        function setIndicator(html) {
+            if (html) {
+                indicator.innerHTML = html;
+                indicator.classList.remove("hidden");
+                indicator.classList.add("flex");
+            } else {
+                indicator.classList.add("hidden");
+                indicator.classList.remove("flex");
+            }
+        }
+
+        function setBankLine(html, cls) {
+            bankLine.className = "mt-1.5 flex items-center gap-1.5 text-[13px] font-medium " + cls;
+            bankLine.innerHTML = html;
+        }
+
+        function clearBankLine() {
+            bankLine.className = "mt-1.5 hidden items-center gap-1.5 text-[13px] font-medium";
+            bankLine.innerHTML = "";
+        }
+
+        function check() {
+            var v = input.value.replace(/\D/g, "");
+            if (v !== input.value) input.value = v;
+            if (v.length < 9) {
+                setIndicator(null);
+                clearBankLine();
+                lastQueried = null;
+                return;
+            }
+            if (v === lastQueried) return;
+            lastQueried = v;
+            setIndicator(SPINNER);
+            fetch("{% url 'routing_lookup' %}?number=" + v, {credentials: "same-origin"})
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (input.value !== v) return;
+                    if (!data.valid) {
+                        setIndicator(CROSS);
+                        setBankLine("Invalid routing number", "text-red-600");
+                    } else if (data.bank) {
+                        setIndicator(CHECK);
+                        setBankLine(BANK_ICON + data.bank, "text-emerald-700");
+                    } else {
+                        setIndicator(CHECK);
+                        setBankLine("Valid routing number", "text-gray-500");
+                    }
+                })
+                .catch(function () {
+                    setIndicator(null);
+                    lastQueried = null;
+                });
+        }
+
+        input.addEventListener("input", function () {
+            clearTimeout(timer);
+            timer = setTimeout(check, 250);
+        });
+        check();
+    })();
+</script>
+{% endblock %}

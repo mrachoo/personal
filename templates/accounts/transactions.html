@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Transactions - Member Portal{% endblock %}
+{% block page_title %}Transactions{% endblock %}
+{% block page_subtitle %}Your complete transaction history.{% endblock %}
+{% block content %}
+{% include "partials/transaction_list.html" with title="All transactions" %}
+
+<div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm p-6">
+        <h2 class="text-sm font-semibold text-gray-900 mb-4">Understanding your activity</h2>
+        <ul class="space-y-3.5 text-[13px] text-gray-600">
+            <li class="flex items-center gap-3">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7L7 17M7 17h8M7 17V9"/></svg>
+                </span>
+                Green entries are money added to your account.
+            </li>
+            <li class="flex items-center gap-3">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-500">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg>
+                </span>
+                Red entries are money leaving your account.
+            </li>
+            <li class="flex items-center gap-3">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-900">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+                </span>
+                Your balance is always the exact sum of every entry — nothing is ever edited or removed.
+            </li>
+        </ul>
+    </div>
+    <div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm p-6">
+        <div class="flex items-center gap-2.5 mb-4">
+            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 4L3 19h18L12 4z"/><path d="M12 10v4M12 17h.01"/>
+                </svg>
+            </span>
+            <h2 class="text-sm font-semibold text-gray-900">Spot something unfamiliar?</h2>
+        </div>
+        <p class="text-[13px] leading-relaxed text-gray-600">
+            If an entry doesn't look right, contact your account administrator promptly with the
+            date and amount. Every entry records which administrator authorized it, so activity
+            can always be traced and explained.
+        </p>
+    </div>
+</div>
+{% endblock %}

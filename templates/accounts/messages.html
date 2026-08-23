@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Messages - Member Portal{% endblock %}
+{% block page_title %}Messages{% endblock %}
+{% block page_subtitle %}Talk to your account administrators.{% endblock %}
+{% block content %}
+
+<div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100">
+        <h2 class="text-sm font-semibold text-gray-900">Conversation</h2>
+        <p class="mt-0.5 text-xs text-gray-400">Messages you send here reach your administrator directly. Replies appear below.</p>
+    </div>
+
+    <div class="px-6 py-6 space-y-4 max-h-[26rem] overflow-y-auto" id="thread">
+        {% for m in thread %}
+            {% if m.sender == 'user' %}
+            <div class="flex justify-end">
+                <div class="max-w-[75%]">
+                    <div class="rounded-2xl rounded-br-md bg-gradient-to-br from-[#0B1626] to-[#16294D] px-4 py-2.5 text-sm leading-relaxed text-white whitespace-pre-line">{{ m.body }}</div>
+                    <p class="mt-1 text-right text-[11px] text-gray-400">You · {{ m.created_at|date:"M j, g:i A" }}</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="flex justify-start">
+                <div class="max-w-[75%]">
+                    <div class="rounded-2xl rounded-bl-md bg-gray-100 px-4 py-2.5 text-sm leading-relaxed text-gray-900 whitespace-pre-line">{{ m.body }}</div>
+                    <p class="mt-1 text-[11px] text-gray-400">{{ m.admin_name }} · {{ m.created_at|date:"M j, g:i A" }}</p>
+                </div>
+            </div>
+            {% endif %}
+        {% empty %}
+        <div class="py-8 text-center">
+            <span class="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-800">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 5h16v11H8l-4 4V5z"/>
+                </svg>
+            </span>
+            <p class="text-sm font-medium text-gray-500">No messages yet</p>
+            <p class="mt-1 text-xs text-gray-400">Start the conversation below — your administrator is notified instantly.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <form method="post" class="border-t border-gray-100 px-6 py-4">
+        {% csrf_token %}
+        {% if error %}
+            <p class="mb-2 text-[13px] text-red-600">{{ error }}</p>
+        {% endif %}
+        <div class="flex items-end gap-3">
+            <textarea name="body" rows="2" maxlength="2000" required placeholder="Write a message to your administrator…"
+                      class="block w-full resize-none rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition focus:outline-none focus:ring-4 focus:ring-blue-900/10 focus:border-blue-900"></textarea>
+            <button type="submit"
+                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0B1626] to-[#16294D] text-white shadow-sm transition hover:opacity-90"
+                    title="Send" aria-label="Send message">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 12l16-7-7 16-2.5-6.5L4 12z"/>
+                </svg>
+            </button>
+        </div>
+    </form>
+</div>
+
+<h2 class="mt-8 mb-4 text-sm font-semibold text-gray-900">Common questions</h2>
+<div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm divide-y divide-gray-50">
+    <details class="group px-6 py-4">
+        <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
+            How does my balance work?
+            <svg class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="mt-3 text-[13px] leading-relaxed text-gray-500">
+            Your account is managed by your administrators. Your balance is always the exact sum of every entry in your transaction
+            history — entries are permanent and are never edited or removed.
+        </p>
+    </details>
+    <details class="group px-6 py-4">
+        <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
+            How do transfers and deposits work?
+            <svg class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="mt-3 text-[13px] leading-relaxed text-gray-500">
+            Submitting a transfer or deposit creates a request with a reference code (like
+            TR-ABC123). An administrator is notified immediately and reviews each request
+            individually. You can track any request's status from the Transfers or External
+            deposits page.
+        </p>
+    </details>
+    <details class="group px-6 py-4">
+        <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
+            Why is my request still pending?
+            <svg class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="mt-3 text-[13px] leading-relaxed text-gray-500">
+            Every request is reviewed by a person, not processed automatically, so timing depends
+            on your administrator's availability. If a request has been pending for a while,
+            send a message above with the reference code.
+        </p>
+    </details>
+    <details class="group px-6 py-4">
+        <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
+            How do I reset my password?
+            <svg class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <p class="mt-3 text-[13px] leading-relaxed text-gray-500">
+            While signed in, go to <a href="{% url 'password_change' %}" class="font-medium text-blue-800 underline">change password</a>
+            and update it directly — no email needed. If you're locked out, the login page has an email reset link. You'll still need your Case ID to sign in
+            afterwards — if you've lost that, send your administrator a message above.
+        </p>
+    </details>
+</div>
+
+<script>
+    (function () {
+        var thread = document.getElementById("thread");
+        if (thread) thread.scrollTop = thread.scrollHeight;
+    })();
+</script>
+{% endblock %}
