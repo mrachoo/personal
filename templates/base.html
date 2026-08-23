@@ -38,7 +38,7 @@
             {% include "partials/nav_link.html" with url_name="profile" label="Profile" icon="user" %}
             {% include "partials/nav_link.html" with url_name="accounts" label="Accounts" icon="bank" %}
             {% include "partials/nav_link.html" with url_name="transactions" label="Transactions" icon="list" %}
-            {% include "partials/nav_link.html" with url_name="messages" label="Messages" icon="chat" %}
+            {% include "partials/nav_link.html" with url_name="messages" label="Messages" icon="chat" badge=unread_messages %}
 
             <p class="px-3.5 pt-5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-blue-200/40">Services</p>
             {% include "partials/nav_link.html" with url_name="transfers" label="Transfers" icon="swap" %}
@@ -77,8 +77,11 @@
                 <img src="{% static 'logo.png' %}" alt="Architelligence" class="h-8 w-auto shrink-0 rounded-md">
                 <p class="flex-1 min-w-0 truncate font-bold text-[15px] tracking-tight text-white">Member Portal</p>
                 <button type="button" id="more-open" aria-label="Open menu"
-                        class="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 ring-1 ring-inset ring-white/15 text-white text-[13px] font-semibold uppercase">
+                        class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 ring-1 ring-inset ring-white/15 text-white text-[13px] font-semibold uppercase">
                     {% if user.first_name %}{{ user.first_name|slice:":1" }}{% if user.last_name %}{{ user.last_name|slice:":1" }}{% endif %}{% else %}{{ user.username|slice:":1" }}{% endif %}
+                    {% if unread_messages %}
+                    <span class="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-[#0B1626]">{{ unread_messages }}</span>
+                    {% endif %}
                 </button>
             </div>
         </header>
@@ -194,7 +197,7 @@
             {% include "partials/sheet_link.html" with url_name="profile" label="Profile" icon="user" %}
             {% include "partials/sheet_link.html" with url_name="accounts" label="Accounts" icon="bank" %}
             {% include "partials/sheet_link.html" with url_name="transactions" label="Transactions" icon="list" %}
-            {% include "partials/sheet_link.html" with url_name="messages" label="Messages" icon="chat" %}
+            {% include "partials/sheet_link.html" with url_name="messages" label="Messages" icon="chat" badge=unread_messages %}
             {% include "partials/sheet_link.html" with url_name="external_deposits" label="External deposits" icon="deposit" %}
         </nav>
         <div class="border-t border-gray-100 px-5 py-4">
@@ -218,10 +221,13 @@
     {% include "partials/tab_link.html" with url_name="transfers" label="Transfer" icon="swap" %}
     {% include "partials/tab_link.html" with url_name="card" label="Card" icon="card" %}
     <button type="button" id="more-open-tab"
-            class="flex flex-1 flex-col items-center justify-center gap-1 py-2 text-gray-400">
+            class="relative flex flex-1 flex-col items-center justify-center gap-1 py-2 text-gray-400">
         <svg class="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
             <path d="M4 7h16M4 12h16M4 17h16"/>
         </svg>
+        {% if unread_messages %}
+        <span class="absolute right-1/2 top-1 -mr-3 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">{{ unread_messages }}</span>
+        {% endif %}
         <span class="text-[10px] font-medium leading-none">More</span>
     </button>
 </nav>

@@ -29,5 +29,8 @@
             <path d="M7 15h4"/>
         {% endif %}
     </svg>
-    {{ label }}
+    <span class="flex-1">{{ label }}</span>
+    {% if badge %}
+    <span class="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold leading-none text-white">{{ badge }}</span>
+    {% endif %}
 </a>

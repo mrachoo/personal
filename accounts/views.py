@@ -208,6 +208,10 @@ def messages_page(request):
             return redirect("messages")
 
     thread = list(request.user.portal_messages.all())
+    # Opening the thread clears the unread badge.
+    request.user.portal_messages.filter(
+        sender=PortalMessage.Sender.ADMIN, read_at__isnull=True
+    ).update(read_at=timezone.now())
     admin_ids = {m.sent_by_admin for m in thread if m.sent_by_admin}
     admins = {a.telegram_id: a for a in Admin.objects.filter(telegram_id__in=admin_ids)}
     for m in thread:

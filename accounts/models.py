@@ -324,6 +324,9 @@ class PortalMessage(models.Model):
         null=True, blank=True, help_text="Admin's telegram_id when sender is admin."
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(
+        null=True, blank=True, help_text="When the user opened the thread. Admin messages only."
+    )
 
     class Meta:
         ordering = ["created_at"]

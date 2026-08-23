@@ -23,6 +23,9 @@ coloured for a light background. Expects: url_name, label, icon{% endcomment %}
         </svg>
     </span>
     <span class="flex-1">{{ label }}</span>
+    {% if badge %}
+    <span class="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold leading-none text-white">{{ badge }}</span>
+    {% endif %}
     <svg class="h-4 w-4 shrink-0 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 6l6 6-6 6"/>
     </svg>
