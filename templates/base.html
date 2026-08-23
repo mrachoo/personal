@@ -25,7 +25,8 @@
 <div class="flex min-h-screen">
     <aside class="w-64 shrink-0 bg-gradient-to-b from-[#0B1626] to-[#16294D] flex flex-col">
         <div class="px-5 pt-6 pb-5 flex items-center gap-3">
-            <img src="{% static 'logo.png' %}" alt="Logo" class="h-9 w-auto">
+            {# Swap for <img src="{% static 'logo.png' %}" alt="Logo" class="h-9 w-auto"> once a logo file exists in static/. #}
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-inset ring-white/15 text-white font-bold text-sm backdrop-blur">M</span>
             <div class="leading-tight">
                 <p class="font-bold text-[15px] tracking-tight text-white">Member Portal</p>
                 <p class="text-[11px] font-medium text-blue-200/50">Online banking</p>
@@ -83,18 +84,9 @@
 {% else %}
 <div class="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#0B1626] to-[#16294D] flex flex-col justify-center px-4 py-12">
     {% include "partials/monument.html" with class="absolute inset-x-0 bottom-0 w-full h-2/3 text-blue-300 opacity-[0.08] pointer-events-none" %}
-    {% comment %}
-    ── YOUR LOGO GOES HERE ─────────────────────────────────────────────
-    1. Drop your logo file into the project's  static/  folder
-       (e.g.  static/logo.png).
-    2. Delete the <span ...>M</span> badge line below.
-    3. Uncomment the <img> line and set its src filename to match.
-    The "Member Portal" text stays directly underneath it.
-    ────────────────────────────────────────────────────────────────────
-    {% endcomment %}
+    {# Swap for <img src="{% static 'logo.png' %}" alt="Logo" class="h-24 w-auto"> once a logo file exists in static/. #}
     <div class="relative z-10 flex flex-col items-center gap-3 mb-8">
         <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 text-white font-bold text-lg ring-1 ring-white/15 backdrop-blur">M</span>
-        {# <img src="{% static 'logo.png' %}" alt="Logo" class="h-24 w-auto"> #}
         <span class="font-bold text-white text-xl tracking-tight">Member Portal</span>
     </div>
     <div class="relative z-10">
