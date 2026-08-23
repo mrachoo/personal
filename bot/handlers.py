@@ -313,11 +313,31 @@ def _decide_request_core(admin_telegram_id, reference, status):
         return ("not_found", reference)
     if sr.status != ServiceRequest.Status.PENDING:
         return ("already_decided", sr)
+
+    # Approving a transfer debits the sender in the same transaction as the
+    # status change, so a request can never read "approved" without its
+    # matching ledger entry existing.
+    entry = None
+    if status == ServiceRequest.Status.APPROVED and sr.kind == ServiceRequest.Kind.TRANSFER:
+        user = User.objects.select_for_update().get(id=sr.user_id)
+        balance = get_balance(user)
+        if sr.amount > balance:
+            return ("insufficient", (sr, balance))
+        reason = f"Transfer {sr.reference} to account {sr.recipient}"
+        if sr.recipient_bank:
+            reason += f" ({sr.recipient_bank})"
+        if sr.note:
+            reason += f' - "{sr.note}"'
+        entry = LedgerEntry.objects.create(
+            user=user, amount=-sr.amount, reason=reason, authorized_by=admin_telegram_id
+        )
+
     sr.status = status
     sr.processed_at = timezone.now()
     sr.processed_by = admin_telegram_id
     sr.save(update_fields=["status", "processed_at", "processed_by"])
-    return ("ok", (sr, _format_request_line(sr)))
+    new_balance = get_balance(sr.user) if entry is not None else None
+    return ("ok", (sr, _format_request_line(sr), new_balance))
 
 
 async def _cmd_decide_request(update, context, status, usage):
@@ -338,13 +358,29 @@ async def _cmd_decide_request(update, context, status, usage):
     if outcome == "already_decided":
         await reply(update, f"{payload.reference} was already {payload.status}.")
         return
-    sr, line = payload
+    if outcome == "insufficient":
+        sr, balance = payload
+        logger.info(
+            "admin=%s approve blocked: %s needs $%s, balance $%s",
+            admin.telegram_id, sr.reference, sr.amount, balance,
+        )
+        await reply(
+            update,
+            f"Not approved — '{sr.user.username}' has ${balance:,} but {sr.reference} "
+            f"is for ${sr.amount:,}.\nCredit the account first, or /decline {sr.reference}.",
+        )
+        return
+    sr, line, new_balance = payload
     logger.info("admin=%s marked request %s %s", admin.telegram_id, sr.reference, sr.status)
     text = line
-    if status == ServiceRequest.Status.APPROVED:
+    if new_balance is not None:
         text += (
-            "\nNote: approving only updates the request's status - "
-            "move the funds with /credit or /debit."
+            f"\nDebited ${sr.amount:,} from '{sr.user.username}'. "
+            f"New balance: ${new_balance:,}."
+        )
+    elif status == ServiceRequest.Status.APPROVED:
+        text += (
+            "\nNote: this is a status change only - add the funds with /credit."
         )
     await reply(update, text)
 
@@ -1232,8 +1268,8 @@ def _menu_requests_view():
             "📨 Requests — portal transfer/deposit queue\n\n"
             "No pending requests right now. 🎉\n\n"
             "Users submit transfer and deposit requests from the portal; they land "
-            "here for review. Approving is a status marker only — money still "
-            "move via /credit and /debit."
+            "here for review. Approving a transfer debits the sender automatically; "
+            "deposits are a status change only."
         )
         return text, _kb([[("🔄 Refresh", "menu:requests")], BACK_ROW])
     text = (
@@ -1282,7 +1318,9 @@ def _request_detail_view(reference):
     lines.append(f"Status: {sr.status}")
     if sr.status == ServiceRequest.Status.PENDING:
         lines.append(
-            "\nApproving marks the request only — move the funds with /credit or /debit."
+            "\nApproving debits the sender automatically."
+            if sr.kind == ServiceRequest.Kind.TRANSFER
+            else "\nApproving is a status change only — add the funds with /credit."
         )
         rows = [
             [("✅ Approve", f"req:approve:{sr.reference}"), ("❌ Decline", f"req:decline:{sr.reference}")],
@@ -1999,11 +2037,28 @@ async def on_request_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer(f"No request {reference}.", show_alert=True)
         elif outcome == "already_decided":
             await query.answer(f"{payload.reference} was already {payload.status}.", show_alert=True)
+        elif outcome == "insufficient":
+            sr, balance = payload
+            logger.info(
+                "admin=%s approve blocked (menu): %s needs $%s, balance $%s",
+                admin.telegram_id, sr.reference, sr.amount, balance,
+            )
+            await query.answer(
+                f"Not approved — {sr.user.username} has ${balance:,} but {sr.reference} "
+                f"is for ${sr.amount:,}. Credit the account first, or decline it.",
+                show_alert=True,
+            )
         else:
-            sr, _line = payload
+            sr, _line, new_balance = payload
             logger.info("admin=%s marked request %s %s (menu)", admin.telegram_id, sr.reference, sr.status)
-            note = " Move the funds with /credit or /debit." if action == "approve" else ""
-            await query.answer(f"{sr.reference} {sr.status}.{note}", show_alert=bool(note))
+            if new_balance is not None:
+                msg = (f"{sr.reference} approved. Debited ${sr.amount:,} from "
+                       f"{sr.user.username}. New balance: ${new_balance:,}.")
+            elif action == "approve":
+                msg = f"{sr.reference} approved. Add the funds with /credit."
+            else:
+                msg = f"{sr.reference} declined."
+            await query.answer(msg, show_alert=True)
     # Re-render the queue so the decided request drops off the button list.
     text, kb = await sync_to_async(_menu_requests_view, thread_sensitive=True)()
     try:

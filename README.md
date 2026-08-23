@@ -146,11 +146,16 @@ Long-polling, no HTTP port opened. Updates are processed one at a time (no
   created the user (owner(s) as fallback), and redirects to `/requests/<ref>/` — a status
   page showing "pending admin approval" with a submitted → review → decision timeline.
   Admins act on the queue from the bot: `/requests` lists, `/approve <ref>` /
-  `/decline <ref>` record a decision (idempotency-guarded). Crucially, approving a
-  request does not move credits — it's a status marker only, and the bot says so in its
-  reply. Credits still move exclusively through `/credit`/`/debit`, so the "balance
-  changes only ever happen through the bot" guarantee is untouched. Both form pages list
-  the user's recent requests with live status chips.
+  `/decline <ref>` record a decision (idempotency-guarded). **Approving a transfer
+  writes the debit automatically**: `bot/handlers.py::_decide_request_core` creates the
+  negative `LedgerEntry` in the same transaction as the status change, so a request can
+  never read "approved" without its matching ledger row. The sender row is taken with
+  `select_for_update()` and the balance re-checked at approval time — if it no longer
+  covers the amount the approval is refused outright (status stays pending, nothing is
+  written) and the admin is told to credit the account or decline. Deposit approvals stay
+  a status change only; adding funds is still a deliberate `/credit`. Declines never
+  touch the ledger. Both form pages list the user's recent requests with live status
+  chips.
 - `/requests/<ref>/` — status page for one request (owner-scoped: other users' references
   404).
 - `/logout/`
