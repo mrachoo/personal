@@ -7,7 +7,7 @@
 
 <div class="max-w-xl">
     <div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm overflow-hidden">
-        <div class="px-8 pt-10 pb-8 text-center border-b border-gray-100">
+        <div class="px-5 sm:px-8 pt-10 pb-8 text-center border-b border-gray-100">
             {% if sr.status == 'pending' %}
                 <span class="relative mx-auto mb-5 flex h-16 w-16 items-center justify-center">
                     <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-200 opacity-40"></span>
@@ -52,7 +52,7 @@
             </p>
         </div>
 
-        <div class="px-8 py-6 border-b border-gray-100">
+        <div class="px-4 sm:px-8 py-6 border-b border-gray-100">
             <ol class="flex items-center">
                 <li class="flex items-center">
                     <span class="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white">
@@ -60,49 +60,49 @@
                             <path d="M5 12.5l4.5 4.5L19 7.5"/>
                         </svg>
                     </span>
-                    <span class="ml-2.5 text-[13px] font-medium text-gray-900">Submitted</span>
+                    <span class="ml-1.5 sm:ml-2.5 text-[11px] sm:text-[13px] font-medium text-gray-900">Submitted</span>
                 </li>
-                <li class="mx-3 h-px flex-1 {% if sr.status == 'pending' %}bg-gray-200{% else %}bg-emerald-500{% endif %}"></li>
+                <li class="mx-1.5 sm:mx-3 h-px flex-1 {% if sr.status == 'pending' %}bg-gray-200{% else %}bg-emerald-500{% endif %}"></li>
                 <li class="flex items-center">
                     {% if sr.status == 'pending' %}
                         <span class="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white">
                             <span class="h-2 w-2 animate-pulse rounded-full bg-white"></span>
                         </span>
-                        <span class="ml-2.5 text-[13px] font-medium text-gray-900">Admin review</span>
+                        <span class="ml-1.5 sm:ml-2.5 text-[11px] sm:text-[13px] font-medium text-gray-900">Admin review</span>
                     {% else %}
                         <span class="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white">
                             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M5 12.5l4.5 4.5L19 7.5"/>
                             </svg>
                         </span>
-                        <span class="ml-2.5 text-[13px] font-medium text-gray-900">Reviewed</span>
+                        <span class="ml-1.5 sm:ml-2.5 text-[11px] sm:text-[13px] font-medium text-gray-900">Reviewed</span>
                     {% endif %}
                 </li>
-                <li class="mx-3 h-px flex-1 {% if sr.status == 'pending' %}bg-gray-200{% elif sr.status == 'approved' %}bg-emerald-500{% else %}bg-red-400{% endif %}"></li>
+                <li class="mx-1.5 sm:mx-3 h-px flex-1 {% if sr.status == 'pending' %}bg-gray-200{% elif sr.status == 'approved' %}bg-emerald-500{% else %}bg-red-400{% endif %}"></li>
                 <li class="flex items-center">
                     {% if sr.status == 'pending' %}
                         <span class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-gray-200 bg-white"></span>
-                        <span class="ml-2.5 text-[13px] font-medium text-gray-400">Decision</span>
+                        <span class="ml-1.5 sm:ml-2.5 text-[11px] sm:text-[13px] font-medium text-gray-400">Decision</span>
                     {% elif sr.status == 'approved' %}
                         <span class="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white">
                             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M5 12.5l4.5 4.5L19 7.5"/>
                             </svg>
                         </span>
-                        <span class="ml-2.5 text-[13px] font-medium text-emerald-700">Approved</span>
+                        <span class="ml-1.5 sm:ml-2.5 text-[11px] sm:text-[13px] font-medium text-emerald-700">Approved</span>
                     {% else %}
                         <span class="flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white">
                             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M16 8l-8 8M8 8l8 8"/>
                             </svg>
                         </span>
-                        <span class="ml-2.5 text-[13px] font-medium text-red-600">Declined</span>
+                        <span class="ml-1.5 sm:ml-2.5 text-[11px] sm:text-[13px] font-medium text-red-600">Declined</span>
                     {% endif %}
                 </li>
             </ol>
         </div>
 
-        <dl class="px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-sm">
+        <dl class="px-5 sm:px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-sm">
             <div>
                 <dt class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Type</dt>
                 <dd class="mt-1 font-medium text-gray-900">{{ sr.get_kind_display }}</dd>

@@ -5,12 +5,12 @@
 {% block page_subtitle %}Here's an overview of your account.{% endblock %}
 {% block content %}
 
-<div class="relative overflow-hidden bg-gradient-to-br from-[#0B1626] to-[#16294D] rounded-2xl p-7 text-white mb-6 shadow-lg shadow-blue-950/10">
+<div class="relative overflow-hidden bg-gradient-to-br from-[#0B1626] to-[#16294D] rounded-2xl p-5 sm:p-7 text-white mb-6 shadow-lg shadow-blue-950/10">
     {% include "partials/monument.html" with class="absolute inset-x-0 bottom-0 w-2/3 text-blue-300 opacity-[0.06] pointer-events-none" %}
-    <div class="relative flex items-start justify-between">
-        <div>
+    <div class="relative flex items-start justify-between gap-3">
+        <div class="min-w-0">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-blue-200/60">Available balance</p>
-            <p class="mt-2 text-[42px] leading-none font-bold tracking-tight tabular-nums {% if balance < 0 %}text-red-400{% endif %}">
+            <p class="mt-2 text-[32px] sm:text-[42px] leading-none font-bold tracking-tight tabular-nums {% if balance < 0 %}text-red-400{% endif %}">
                 {% if balance < 0 %}-{% endif %}{{ balance|usd }}
             </p>
         </div>
@@ -20,18 +20,18 @@
             {% if user.is_active %}Active{% else %}Inactive{% endif %}
         </span>
     </div>
-    <div class="relative mt-7 pt-5 border-t border-white/10 flex items-center justify-between">
+    <div class="relative mt-6 sm:mt-7 pt-5 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="text-[13px] text-blue-200/60">
             Case ID
             <span class="ml-2 font-mono tracking-wider text-blue-50">{{ user.account_id }}</span>
         </div>
         <div class="flex gap-2.5">
             <a href="{% url 'transfers' %}"
-               class="rounded-xl bg-white/10 px-4 py-2 text-[13px] font-semibold text-white ring-1 ring-inset ring-white/15 backdrop-blur transition hover:bg-white/20">
+               class="flex-1 sm:flex-none text-center rounded-xl bg-white/10 px-4 py-2.5 sm:py-2 text-[13px] font-semibold text-white ring-1 ring-inset ring-white/15 backdrop-blur transition hover:bg-white/20">
                 Transfer
             </a>
             <a href="{% url 'external_deposits' %}"
-               class="rounded-xl bg-white px-4 py-2 text-[13px] font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50">
+               class="flex-1 sm:flex-none text-center rounded-xl bg-white px-4 py-2.5 sm:py-2 text-[13px] font-semibold text-blue-950 shadow-sm transition hover:bg-blue-50">
                 Deposit
             </a>
         </div>
@@ -76,7 +76,7 @@
 </div>
 
 {% if specialist %}
-<div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm p-6 mb-8 flex flex-col sm:flex-row sm:items-center gap-5">
+<div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm p-5 sm:p-6 mb-8 flex flex-col sm:flex-row sm:items-center gap-5">
     {% include "partials/specialist_avatar.html" with variant=specialist.avatar class="h-16 w-16 shrink-0" %}
     <div class="min-w-0 flex-1">
         <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Admin Specialist</p>
@@ -109,7 +109,7 @@
 {% include "partials/transaction_list.html" with title="Recent activity" show_view_all=True %}
 
 <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm p-6">
+    <div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm p-5 sm:p-6">
         <div class="flex items-center gap-2.5 mb-4">
             <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-900">
                 <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -133,7 +133,7 @@
             </li>
         </ul>
     </div>
-    <div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm p-6">
+    <div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm p-5 sm:p-6">
         <div class="flex items-center gap-2.5 mb-4">
             <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-900">
                 <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">

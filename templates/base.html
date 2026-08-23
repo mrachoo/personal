@@ -23,7 +23,8 @@
 <body class="h-full font-sans text-gray-900 antialiased">
 {% if user.is_authenticated %}
 <div class="flex min-h-screen">
-    <aside class="w-64 shrink-0 bg-gradient-to-b from-[#0B1626] to-[#16294D] flex flex-col">
+    {# Desktop sidebar. On mobile this is replaced by the top bar + bottom tab bar below. #}
+    <aside class="hidden lg:flex w-64 shrink-0 bg-gradient-to-b from-[#0B1626] to-[#16294D] flex-col">
         <div class="px-5 pt-6 pb-5 flex items-center gap-3">
             <img src="{% static 'logo.png' %}" alt="Architelligence" class="h-9 w-auto shrink-0 rounded-lg">
             <div class="leading-tight">
@@ -69,16 +70,28 @@
         </div>
     </aside>
     <div class="flex-1 min-w-0">
-        <header class="sticky top-0 z-10 border-b border-gray-200/60 bg-[#F4F6F9]/80 backdrop-blur">
-            <div class="max-w-4xl mx-auto px-8 py-5 flex items-end justify-between gap-4">
+        {# Mobile top bar — brand + account, mirrors a native app's header. #}
+        <header class="lg:hidden sticky top-0 z-30 bg-gradient-to-r from-[#0B1626] to-[#16294D]">
+            <div class="flex items-center gap-3 px-4 py-3">
+                <img src="{% static 'logo.png' %}" alt="Architelligence" class="h-8 w-auto shrink-0 rounded-md">
+                <p class="flex-1 min-w-0 truncate font-bold text-[15px] tracking-tight text-white">Member Portal</p>
+                <button type="button" id="more-open" aria-label="Open menu"
+                        class="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 ring-1 ring-inset ring-white/15 text-white text-[13px] font-semibold uppercase">
+                    {% if user.first_name %}{{ user.first_name|slice:":1" }}{% if user.last_name %}{{ user.last_name|slice:":1" }}{% endif %}{% else %}{{ user.username|slice:":1" }}{% endif %}
+                </button>
+            </div>
+        </header>
+
+        <header class="lg:sticky lg:top-0 z-10 border-b border-gray-200/60 bg-[#F4F6F9]/80 backdrop-blur">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-5 flex items-end justify-between gap-4">
                 <div class="min-w-0">
-                    <h1 class="text-xl font-bold tracking-tight text-gray-900 truncate">{% block page_title %}{% endblock %}</h1>
+                    <h1 class="text-lg lg:text-xl font-bold tracking-tight text-gray-900 truncate">{% block page_title %}{% endblock %}</h1>
                     <p class="mt-0.5 text-[13px] text-gray-500">{% block page_subtitle %}{% endblock %}</p>
                 </div>
                 <p class="hidden sm:block shrink-0 text-[13px] font-medium text-gray-400">{% now "l, F j, Y" %}</p>
             </div>
         </header>
-        <main class="max-w-4xl mx-auto px-8 py-8">
+        <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
             {% include "partials/messages.html" %}
 {% else %}
 <div class="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#0B1626] to-[#16294D] flex flex-col justify-center px-4 py-12">
@@ -96,8 +109,8 @@
         </main>
         {# Footer links are placeholders (href="#") — real destinations to be added later. #}
         <footer class="border-t border-gray-200/75 bg-white">
-            <div class="max-w-4xl mx-auto px-8 py-10">
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-8">
+            <div class="max-w-4xl mx-auto px-5 sm:px-8 py-8 sm:py-10">
+                <div class="hidden sm:grid grid-cols-2 sm:grid-cols-4 gap-8">
                     <div>
                         <p class="mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Company</p>
                         <ul class="space-y-2 text-[13px]">
@@ -137,9 +150,17 @@
                         </ul>
                     </div>
                 </div>
-                <div class="mt-10 flex flex-col items-start justify-between gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:items-center">
+                {# Mobile: one condensed link row instead of the four columns above. #}
+                <div class="sm:hidden flex flex-wrap justify-center gap-x-4 gap-y-2 text-[13px]">
+                    <a href="#" class="text-gray-500">Help center</a>
+                    <a href="#" class="text-gray-500">Privacy</a>
+                    <a href="#" class="text-gray-500">Terms</a>
+                    <a href="#" class="text-gray-500">Security</a>
+                    <a href="#" class="text-gray-500">Contact us</a>
+                </div>
+                <div class="mt-6 sm:mt-10 flex flex-col items-center sm:items-start justify-between gap-4 border-t border-gray-100 pt-6 sm:flex-row sm:items-center">
                     <div class="flex items-center gap-2.5">
-                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#0B1626] to-[#16294D] text-xs font-bold text-white">M</span>
+                        <img src="{% static 'logo.png' %}" alt="Architelligence" class="h-7 w-auto rounded-md">
                         <span class="text-[13px] font-semibold text-gray-900">Member Portal</span>
                     </div>
                     <p class="text-xs text-gray-400">© 2026 Member Portal. All rights reserved.</p>
@@ -148,6 +169,78 @@
         </footer>
     </div>
 </div>
+
+{# ── Mobile: slide-up "more" sheet ────────────────────────────────── #}
+<div id="more-sheet" class="lg:hidden fixed inset-0 z-40 hidden">
+    <div id="more-backdrop" class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"></div>
+    <div class="absolute inset-x-0 bottom-0 rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl">
+        <div class="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0B1626] to-[#16294D] text-sm font-semibold uppercase text-white">
+                {% if user.first_name %}{{ user.first_name|slice:":1" }}{% if user.last_name %}{{ user.last_name|slice:":1" }}{% endif %}{% else %}{{ user.username|slice:":1" }}{% endif %}
+            </span>
+            <div class="min-w-0 flex-1 leading-tight">
+                <p class="truncate text-sm font-semibold text-gray-900">
+                    {% if user.first_name or user.last_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}
+                </p>
+                <p class="truncate text-xs text-gray-400">{{ user.email }}</p>
+            </div>
+            <button type="button" id="more-close" aria-label="Close menu"
+                    class="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+        <nav class="px-3 py-3">
+            {% include "partials/nav_link.html" with url_name="profile" label="Profile" icon="user" %}
+            {% include "partials/nav_link.html" with url_name="accounts" label="Accounts" icon="bank" %}
+            {% include "partials/nav_link.html" with url_name="messages" label="Messages" icon="chat" %}
+            {% include "partials/nav_link.html" with url_name="external_deposits" label="External deposits" icon="deposit" %}
+        </nav>
+        <div class="border-t border-gray-100 px-5 py-4">
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-xl bg-gray-100 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-200">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 4H6a1 1 0 00-1 1v14a1 1 0 001 1h3"/><path d="M14 8l4 4-4 4M18 12H9"/>
+                    </svg>
+                    Log out
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# ── Mobile: bottom tab bar ───────────────────────────────────────── #}
+<nav class="lg:hidden fixed inset-x-0 bottom-0 z-30 flex border-t border-gray-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+    {% include "partials/tab_link.html" with url_name="dashboard" label="Home" icon="home" %}
+    {% include "partials/tab_link.html" with url_name="transactions" label="Activity" icon="list" %}
+    {% include "partials/tab_link.html" with url_name="transfers" label="Transfer" icon="swap" %}
+    {% include "partials/tab_link.html" with url_name="card" label="Card" icon="card" %}
+    <button type="button" id="more-open-tab"
+            class="flex flex-1 flex-col items-center justify-center gap-1 py-2 text-gray-400">
+        <svg class="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+        </svg>
+        <span class="text-[10px] font-medium leading-none">More</span>
+    </button>
+</nav>
+
+<script>
+    (function () {
+        var sheet = document.getElementById("more-sheet");
+        if (!sheet) return;
+        function open() { sheet.classList.remove("hidden"); document.body.style.overflow = "hidden"; }
+        function close() { sheet.classList.add("hidden"); document.body.style.overflow = ""; }
+        ["more-open", "more-open-tab"].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener("click", open);
+        });
+        ["more-close", "more-backdrop"].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener("click", close);
+        });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+    })();
+</script>
 {% else %}
     </div>
     {# Placeholder links (href="#") — real destinations to be added later. #}

@@ -5,12 +5,12 @@
 {% block content %}
 
 <div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-100">
+    <div class="px-4 sm:px-6 py-4 border-b border-gray-100">
         <h2 class="text-sm font-semibold text-gray-900">Conversation</h2>
         <p class="mt-0.5 text-xs text-gray-400">Messages you send here reach your administrator directly. Replies appear below.</p>
     </div>
 
-    <div class="px-6 py-6 space-y-4 max-h-[26rem] overflow-y-auto" id="thread">
+    <div class="px-4 sm:px-6 py-5 space-y-4 max-h-[24rem] sm:max-h-[26rem] overflow-y-auto" id="thread">
         {% for m in thread %}
             {% if m.sender == 'user' %}
             <div class="flex justify-end">
@@ -40,7 +40,7 @@
         {% endfor %}
     </div>
 
-    <form method="post" class="border-t border-gray-100 px-6 py-4">
+    <form method="post" class="border-t border-gray-100 px-4 sm:px-6 py-4">
         {% csrf_token %}
         {% if error %}
             <p class="mb-2 text-[13px] text-red-600">{{ error }}</p>
@@ -61,7 +61,7 @@
 
 <h2 class="mt-8 mb-4 text-sm font-semibold text-gray-900">Common questions</h2>
 <div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm divide-y divide-gray-50">
-    <details class="group px-6 py-4">
+    <details class="group px-4 sm:px-6 py-4">
         <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
             How does my balance work?
             <svg class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -71,7 +71,7 @@
             history — entries are permanent and are never edited or removed.
         </p>
     </details>
-    <details class="group px-6 py-4">
+    <details class="group px-4 sm:px-6 py-4">
         <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
             How do transfers and deposits work?
             <svg class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -83,7 +83,7 @@
             deposits page.
         </p>
     </details>
-    <details class="group px-6 py-4">
+    <details class="group px-4 sm:px-6 py-4">
         <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
             Why is my request still pending?
             <svg class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -94,7 +94,7 @@
             send a message above with the reference code.
         </p>
     </details>
-    <details class="group px-6 py-4">
+    <details class="group px-4 sm:px-6 py-4">
         <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
             How do I reset my password?
             <svg class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>

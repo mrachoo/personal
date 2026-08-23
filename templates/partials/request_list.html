@@ -2,12 +2,12 @@
 {% load humanize money %}
 {% if recent_requests %}
 <div class="mt-6 bg-white border border-gray-200/75 rounded-2xl shadow-sm overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-100">
+    <div class="px-4 sm:px-6 py-4 border-b border-gray-100">
         <h2 class="text-sm font-semibold text-gray-900">Recent requests</h2>
     </div>
     <div class="divide-y divide-gray-50">
         {% for sr in recent_requests %}
-        <a href="{% url 'request_detail' sr.reference %}" class="flex items-center justify-between gap-4 px-6 py-4 transition-colors hover:bg-gray-50/75">
+        <a href="{% url 'request_detail' sr.reference %}" class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 transition-colors hover:bg-gray-50/75">
             <div class="min-w-0">
                 <p class="text-sm font-medium text-gray-900">
                     <span class="font-mono text-[13px] tracking-wide">{{ sr.reference }}</span>

@@ -5,12 +5,12 @@
 {% block page_subtitle %}Your accounts and their details.{% endblock %}
 {% block content %}
 
-<div class="relative overflow-hidden bg-gradient-to-br from-[#0B1626] to-[#16294D] rounded-2xl p-7 text-white mb-6 shadow-lg shadow-blue-950/10">
+<div class="relative overflow-hidden bg-gradient-to-br from-[#0B1626] to-[#16294D] rounded-2xl p-5 sm:p-7 text-white mb-6 shadow-lg shadow-blue-950/10">
     {% include "partials/monument.html" with class="absolute inset-x-0 bottom-0 w-2/3 text-blue-300 opacity-[0.06] pointer-events-none" %}
     <div class="relative flex items-start justify-between">
         <div>
             <p class="text-[11px] font-semibold uppercase tracking-wider text-blue-200/60">Checking account</p>
-            <p class="mt-2 text-[34px] leading-none font-bold tracking-tight tabular-nums {% if balance < 0 %}text-red-400{% endif %}">
+            <p class="mt-2 text-[28px] sm:text-[34px] leading-none font-bold tracking-tight tabular-nums {% if balance < 0 %}text-red-400{% endif %}">
                 {% if balance < 0 %}-{% endif %}{{ balance|usd }}
             </p>
         </div>
@@ -26,7 +26,7 @@
     </div>
 </div>
 
-<div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm p-7">
+<div class="bg-white border border-gray-200/75 rounded-2xl shadow-sm p-5 sm:p-7">
     <h2 class="text-sm font-semibold text-gray-900 mb-5">Account details</h2>
     <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-sm">
         <div>
