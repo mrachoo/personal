@@ -134,7 +134,9 @@ OWNER_TELEGRAM_ID = os.environ.get("OWNER_TELEGRAM_ID", "")
 # --- Internationalization ---------------------------------------------------
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+# Timestamps are stored in UTC (USE_TZ) and displayed in this zone. Override
+# per-deployment with the TIME_ZONE env var, e.g. "America/New_York".
+TIME_ZONE = os.environ.get("TIME_ZONE", "America/Chicago")
 USE_I18N = True
 USE_TZ = True
 

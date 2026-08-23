@@ -77,6 +77,11 @@ def find_user(username):
     return User.objects.filter(username=username.strip().lower()).first()
 
 
+def local(dt):
+    """Render stored UTC timestamps in the configured display timezone."""
+    return timezone.localtime(dt)
+
+
 def get_balance(user):
     return user.ledger_entries.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
@@ -944,7 +949,7 @@ async def cmd_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for e in entries:
         admin_desc = await sync_to_async(describe_admin, thread_sensitive=True)(e.authorized_by)
         lines.append(
-            f"{e.created_at:%Y-%m-%d %H:%M} {e.amount:+,.2f} - {e.reason} (by {admin_desc})"
+            f"{local(e.created_at):%Y-%m-%d %H:%M} {e.amount:+,.2f} - {e.reason} (by {admin_desc})"
         )
     await reply(update, "\n".join(lines))
 
@@ -982,7 +987,7 @@ async def cmd_audit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for e in entries:
         admin_desc = await sync_to_async(describe_admin, thread_sensitive=True)(e.authorized_by)
         lines.append(
-            f"{e.created_at:%Y-%m-%d %H:%M} {e.user.username}: {e.amount:+,.2f} - {e.reason} (by {admin_desc})"
+            f"{local(e.created_at):%Y-%m-%d %H:%M} {e.user.username}: {e.amount:+,.2f} - {e.reason} (by {admin_desc})"
         )
     await reply(update, "\n".join(lines))
 
@@ -1314,7 +1319,7 @@ def _request_detail_view(reference):
     if sr.note:
         lines.append(f'Note: "{sr.note}"')
     lines.append(f"Sender balance: ${get_balance(u):,}")
-    lines.append(f"Submitted: {sr.created_at:%b %d, %H:%M}")
+    lines.append(f"Submitted: {local(sr.created_at):%b %d, %I:%M %p}")
     lines.append(f"Status: {sr.status}")
     if sr.status == ServiceRequest.Status.PENDING:
         lines.append(
@@ -1355,7 +1360,7 @@ def _user_detail_view(username):
     lines.append(f"Status: {'Active' if u.is_active else '🚫 Deactivated'}")
     lines.append(f"Email: {u.email}")
     lines.append(f"Case ID: {u.account_id} · Acct #: {u.account_number}")
-    lines.append(f"Member since: {u.created_at:%b %d, %Y}")
+    lines.append(f"Member since: {local(u.created_at):%b %d, %Y}")
     lines.append(f"Created by: {describe_admin(u.created_by_id) if u.created_by_id else '—'}")
     lines.append(f"Card application: {'yes — tap Card below' if app else 'none'}")
     lines.append(f"Delivery address: {'on file' if u.has_address else 'none'}")
@@ -1384,7 +1389,7 @@ def _user_history_view(username):
     if not entries:
         lines.append("No ledger entries yet.")
     for e in entries:
-        lines.append(f"{e.created_at:%b %d %H:%M} {e.amount:+,.2f} - {e.reason} (by {describe_admin(e.authorized_by)})")
+        lines.append(f"{local(e.created_at):%b %d %I:%M %p} {e.amount:+,.2f} - {e.reason} (by {describe_admin(e.authorized_by)})")
     lines.append(f"\n/history {u.username} 50 shows more.")
     rows = [[(f"‹ {u.username}", f"usr:view:{u.username}"), ("⌂ Menu", "menu:main")]]
     return "\n".join(lines), _kb(rows)
@@ -1525,7 +1530,7 @@ def _admin_detail_view(telegram_id):
     lines.append(f"Role: {a.role}")
     lines.append(f"Users created: {created}")
     lines.append(f"Specialist profile: {(a.first_name + ' ' + a.last_name).strip() or 'not set'}")
-    lines.append(f"Admin since: {a.created_at:%b %d, %Y}")
+    lines.append(f"Admin since: {local(a.created_at):%b %d, %Y}")
     rows = []
     if a.role != Admin.Role.OWNER:
         rows.append([("🗑 Remove this admin", f"adm:rm:{a.telegram_id}")])
@@ -1574,7 +1579,7 @@ def _menu_audit_view():
         lines.append("No ledger entries yet.")
     for e in entries:
         lines.append(
-            f"{e.created_at:%b %d %H:%M} {e.user.username}: {e.amount:+,.2f} - {e.reason} "
+            f"{local(e.created_at):%b %d %I:%M %p} {e.user.username}: {e.amount:+,.2f} - {e.reason} "
             f"(by {describe_admin(e.authorized_by)})"
         )
     lines.append("\n/audit [n] shows more; /history <username> follows one user.")
