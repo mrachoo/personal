@@ -132,7 +132,9 @@ Long-polling, no HTTP port opened. Updates are processed one at a time (no
   user needs it every time they log in, not just once. Session flag is cleared on logout.
 - `/invite/<token>/` — set password, single-use, 72h expiry, auto-login on success
   (bypasses the Account ID gate — it's already a secure single-use token)
-- `/login/` — email + password, rate-limited via django-axes (5 failures/hour lockout)
+- `/login/` — email + password. No lockout: failed attempts are unlimited (django-axes
+  was removed at the owner's request, Aug 2026). The Case ID gate in front of `/login/`
+  is the only barrier before the password itself.
 - `/` — dashboard (login required): balance, paginated ledger history (20/page)
 - `/profile/` — first/last name, username, email, member-since, status. Read-only.
 - `/accounts/` — account number (cosmetic, bank-statement-style, distinct from the
