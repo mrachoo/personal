@@ -1,0 +1,29 @@
+[Unit]
+Description=Member Portal web (gunicorn)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=notify
+User=portal
+Group=portal
+WorkingDirectory=/srv/portal
+EnvironmentFile=/srv/portal/.env
+ExecStart=/srv/portal/venv/bin/gunicorn config.wsgi:application \
+    --bind 127.0.0.1:8000 \
+    --workers 3 \
+    --access-logfile - \
+    --error-logfile -
+Restart=always
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=10
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

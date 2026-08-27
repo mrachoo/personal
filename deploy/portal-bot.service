@@ -1,0 +1,23 @@
+[Unit]
+Description=Member Portal Telegram bot (long-polling worker)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=portal
+Group=portal
+WorkingDirectory=/srv/portal
+EnvironmentFile=/srv/portal/.env
+ExecStart=/srv/portal/venv/bin/python manage.py runbot
+Restart=always
+RestartSec=10
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
