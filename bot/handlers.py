@@ -42,7 +42,7 @@ DEFAULT_AUDIT_N = 20
 
 COMMON_HELP = """\
 /menu - interactive button menu for everything below
-/create <username> <email> <first_name> <last_name> - create a user and send an invite email
+/create <username> <email> <first_name> <last_name> <password> - create a user
 /setpassword <username> <new_password> - set a user's password (only the admin who created them)
 /credit <username> <amount> <reason...> - add funds
 /debit <username> <amount> <reason...> - remove funds
@@ -159,7 +159,38 @@ async def callback_auth_gate(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # --- /create -----------------------------------------------------------------
 
 
-def _create_core(admin_telegram_id, username, email, first_name, last_name):
+def _new_user_credentials(user, password):
+    """The only delivery path for these — no invite email is sent on create."""
+    return (
+        f"Created user '{user.username}'.\n\n"
+        "No email was sent. Pass these to the user yourself:\n\n"
+        f"Case ID: {user.account_id}\n"
+        f"Username: {user.username}\n"
+        f"Password: {password}\n\n"
+        f"Email on file: {user.email}\n"
+        f"Account number: {user.account_number}\n\n"
+        "They need the Case ID and password to log in. Delete this message "
+        "once they have them."
+    )
+
+
+def _check_new_user_details(username, email):
+    """Read-only pre-flight for the guided flow, so the admin isn't asked for a
+    password before we know the username and email are usable."""
+    username = username.strip().lower()
+    email = email.strip().lower()
+    try:
+        username_validator(username)
+    except ValidationError as exc:
+        return ("invalid", str(exc.messages[0]))
+    if User.objects.filter(username=username).exists():
+        return ("username_taken", username)
+    if User.objects.filter(email=email).exists():
+        return ("email_taken", email)
+    return ("ok", username)
+
+
+def _create_core(admin_telegram_id, username, email, first_name, last_name, password):
     username = username.strip().lower()
     email = email.strip().lower()
 
@@ -181,32 +212,46 @@ def _create_core(admin_telegram_id, username, email, first_name, last_name):
         last_name=last_name.strip(),
         created_by=creating_admin,
     )
-    user.set_unusable_password()
+    try:
+        password_validation.validate_password(password, user)
+    except ValidationError as exc:
+        return ("weak_password", "; ".join(exc.messages))
+    user.set_password(password)
     try:
         user.full_clean()
     except ValidationError as exc:
         return ("invalid", "; ".join(sum(exc.message_dict.values(), [])))
     user.save()
-    token = InviteToken.objects.create(user=user)
-    return ("ok", (user, token))
+    return ("ok", user)
 
 
 async def cmd_create(update: Update, context: ContextTypes.DEFAULT_TYPE):
     admin = context.user_data["admin"]
     args = context.args
-    if len(args) != 4:
-        await reply(update, "Usage: /create <username> <email> <first_name> <last_name>")
+    if len(args) != 5:
+        await reply(
+            update,
+            "Usage: /create <username> <email> <first_name> <last_name> <password>\n"
+            "A password with spaces only works from the /menu flow.",
+        )
         return
 
-    username, email, first_name, last_name = args
+    username, email, first_name, last_name, password = args
     result = await sync_to_async(process_once, thread_sensitive=True)(
-        update.update_id, _create_core, admin.telegram_id, username, email, first_name, last_name
+        update.update_id,
+        _create_core,
+        admin.telegram_id,
+        username,
+        email,
+        first_name,
+        last_name,
+        password,
     )
     if result is DUPLICATE:
         return
 
     status, payload = result
-    if status in ("username_taken", "email_taken", "invalid"):
+    if status in ("username_taken", "email_taken", "invalid", "weak_password"):
         logger.info("admin=%s create failed: %s (%s)", admin.telegram_id, status, payload)
     if status == "username_taken":
         await reply(update, f"Username '{payload}' is already taken.")
@@ -214,27 +259,16 @@ async def cmd_create(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if status == "email_taken":
         await reply(update, f"Email '{payload}' is already registered.")
         return
+    if status == "weak_password":
+        await reply(update, f"Password rejected: {payload}")
+        return
     if status == "invalid":
         await reply(update, f"Could not create user: {payload}")
         return
 
-    user, token = payload
+    user = payload
     logger.info("admin=%s created user=%s", admin.telegram_id, user.username)
-    await reply(
-        update,
-        f"Created user '{user.username}' ({user.email}).\n"
-        f"Case ID: {user.account_id}\n"
-        f"Account number: {user.account_number}",
-    )
-    try:
-        await sync_to_async(send_invite_email, thread_sensitive=True)(user, token.token)
-        await reply(update, "Invite email sent.")
-    except EmailSendError as exc:
-        await reply(
-            update,
-            f"Warning: invite email could not be sent ({exc}). "
-            f"Use /resendinvite {user.username} to retry once fixed.",
-        )
+    await reply(update, _new_user_credentials(user, password))
 
 
 # --- /setpassword --------------------------------------------------------------
@@ -1675,14 +1709,26 @@ async def on_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def _flow_prompt_create():
     text = (
-        "➕ Create a user\n\n"
+        "➕ Create a user — step 1 of 2\n\n"
         "Send the new user's details in ONE message, in this order:\n\n"
         "username email first_name last_name\n\n"
         "Example (copy and edit):\n"
         "jsmith jane.smith@example.com Jane Smith\n\n"
         "Username: 3-32 chars, lowercase letters/digits/underscores. Names are "
-        "single words. The account is created immediately and the invite email "
-        "goes out with their Case ID."
+        "single words. I'll ask for their password next — nothing is created "
+        "until you've set one."
+    )
+    return text, _kb([[("✖ Cancel", "flow:cancel")]])
+
+
+def _flow_prompt_create_password(username):
+    text = (
+        f"🔑 Create a user — step 2 of 2\n\n"
+        f"Now send the password for '{username}'.\n\n"
+        "At least 8 characters, not all digits, not a common password, and not "
+        "too similar to their name or email. Spaces are allowed.\n\n"
+        "No email is sent, so you'll pass the Case ID and password to them "
+        "yourself — I'll show both once the account exists."
     )
     return text, _kb([[("✖ Cancel", "flow:cancel")]])
 
@@ -1713,12 +1759,9 @@ async def _finish_flow_create(update, context, admin, tokens):
         )
         return
     username, email, first_name, last_name = tokens
-    result = await sync_to_async(process_once, thread_sensitive=True)(
-        update.update_id, _create_core, admin.telegram_id, username, email, first_name, last_name
+    status, payload = await sync_to_async(_check_new_user_details, thread_sensitive=True)(
+        username, email
     )
-    if result is DUPLICATE:
-        return
-    status, payload = result
     if status == "username_taken":
         await reply(update, f"Username '{payload}' is already taken — send different details, or Cancel above.")
         return
@@ -1728,24 +1771,41 @@ async def _finish_flow_create(update, context, admin, tokens):
     if status == "invalid":
         await reply(update, f"Could not create user: {payload}\nFix it and send again, or Cancel above.")
         return
-    context.user_data.pop("pending_input", None)
-    user, token = payload
-    logger.info("admin=%s created user=%s (guided flow)", admin.telegram_id, user.username)
-    await reply(
-        update,
-        f"Created user '{user.username}' ({user.email}).\n"
-        f"Case ID: {user.account_id}\n"
-        f"Account number: {user.account_number}",
+    context.user_data["pending_input"] = {
+        "flow": "create_password",
+        "details": [username, email, first_name, last_name],
+    }
+    text, kb = _flow_prompt_create_password(payload)
+    await reply(update, text, reply_markup=kb)
+
+
+async def _finish_flow_create_password(update, context, admin, password, details):
+    username, email, first_name, last_name = details
+    result = await sync_to_async(process_once, thread_sensitive=True)(
+        update.update_id,
+        _create_core,
+        admin.telegram_id,
+        username,
+        email,
+        first_name,
+        last_name,
+        password,
     )
-    try:
-        await sync_to_async(send_invite_email, thread_sensitive=True)(user, token.token)
-        await reply(update, "Invite email sent.")
-    except EmailSendError as exc:
-        await reply(
-            update,
-            f"Warning: invite email could not be sent ({exc}). "
-            f"Use /resendinvite {user.username} to retry once fixed.",
-        )
+    if result is DUPLICATE:
+        return
+    status, payload = result
+    if status == "weak_password":
+        # Keep the flow armed so only the password gets retyped.
+        await reply(update, f"Password rejected: {payload}\n\nSend a different one, or Cancel above.")
+        return
+    context.user_data.pop("pending_input", None)
+    if status in ("username_taken", "email_taken", "invalid"):
+        logger.info("admin=%s create failed: %s (%s)", admin.telegram_id, status, payload)
+        await reply(update, f"Could not create user: {payload}\nStart again from /menu.")
+        return
+    user = payload
+    logger.info("admin=%s created user=%s (guided flow)", admin.telegram_id, user.username)
+    await reply(update, _new_user_credentials(user, password))
 
 
 def _user_address_view(admin_telegram_id, username):
@@ -1869,6 +1929,10 @@ async def on_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     flow = pending["flow"]
     if flow == "create":
         await _finish_flow_create(update, context, admin, text.split())
+    elif flow == "create_password":
+        await _finish_flow_create_password(
+            update, context, admin, text.strip(), pending["details"]
+        )
     elif flow in ("credit", "debit"):
         await _finish_flow_amount(update, context, admin, flow, text.split(), pending.get("username"))
     elif flow == "message":
