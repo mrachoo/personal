@@ -4,7 +4,12 @@ from asgiref.sync import sync_to_async
 from decimal import Decimal
 
 from django.db.models import Sum
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    ReplyKeyboardMarkup,
+    Update,
+)
 from telegram.error import BadRequest
 from telegram.ext import ApplicationHandlerStop, ContextTypes
 
@@ -1289,6 +1294,29 @@ def _kb(rows):
     )
 
 
+MENU_BUTTON_TEXT = "☰ Menu"
+
+# Inline keyboards belong to the one message they were sent with, so they go out
+# of reach as soon as the chat scrolls or a flow ends in a plain-text reply. This
+# one is docked under the text input instead and Telegram keeps it there until it
+# is explicitly removed, which makes the menu reachable from anywhere.
+PERSISTENT_MENU_KB = ReplyKeyboardMarkup(
+    [[MENU_BUTTON_TEXT]], resize_keyboard=True, is_persistent=True
+)
+
+
+async def _ensure_menu_dock(update, context):
+    """Dock the button once per admin per process. Telegram persists it on its
+    side; user_data only stops us re-announcing it on every /menu."""
+    if context.user_data.get("menu_docked"):
+        return
+    await update.effective_message.reply_text(
+        f"{MENU_BUTTON_TEXT} is docked below — tap it any time to come back here.",
+        reply_markup=PERSISTENT_MENU_KB,
+    )
+    context.user_data["menu_docked"] = True
+
+
 BACK_ROW = [("‹ Back to menu", "menu:main")]
 
 MAIN_MENU_TEXT = (
@@ -1652,6 +1680,8 @@ def _menu_audit_view(admin_telegram_id):
 
 async def cmd_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     admin = context.user_data["admin"]
+    context.user_data.pop("pending_input", None)
+    await _ensure_menu_dock(update, context)
     text, kb = _main_menu(admin)
     await reply(update, text, reply_markup=kb)
 
@@ -1921,11 +1951,27 @@ async def on_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if admin is None:
         return
     context.user_data["admin"] = admin
+    text = update.effective_message.text
+
+    # The docked button arrives as an ordinary text message, so it has to be
+    # handled before the dispatch below — otherwise tapping it mid-flow would be
+    # read as the amount, password, or message body the bot is waiting for. It
+    # doubles as the way out of a flow that has got stuck.
+    if text.strip() == MENU_BUTTON_TEXT:
+        context.user_data.pop("pending_input", None)
+        await _ensure_menu_dock(update, context)
+        menu_text, kb = _main_menu(admin)
+        await reply(update, menu_text, reply_markup=kb)
+        return
+
     pending = context.user_data.get("pending_input")
     if not pending:
-        await reply(update, "No guided action in progress — open /menu to get started.")
+        await _ensure_menu_dock(update, context)
+        await reply(
+            update,
+            f"No guided action in progress — tap {MENU_BUTTON_TEXT} below to get started.",
+        )
         return
-    text = update.effective_message.text
     flow = pending["flow"]
     if flow == "create":
         await _finish_flow_create(update, context, admin, text.split())

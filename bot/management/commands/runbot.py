@@ -2,7 +2,7 @@ import logging
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
-from telegram import Update
+from telegram import BotCommand, MenuButtonCommands, Update
 from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
 from bot.handlers import (
@@ -40,6 +40,33 @@ from bot.handlers import (
 
 logger = logging.getLogger("bot")
 
+# Populates the "/" button beside the message box, so every command is one tap
+# away instead of something you have to remember and type.
+BOT_COMMANDS = [
+    BotCommand("menu", "Open the admin menu"),
+    BotCommand("create", "Create a user: username email first last password"),
+    BotCommand("setpassword", "Set a user's password"),
+    BotCommand("credit", "Add funds to a user"),
+    BotCommand("debit", "Remove funds from a user"),
+    BotCommand("balance", "Show a user's balance"),
+    BotCommand("history", "Show a user's recent ledger entries"),
+    BotCommand("requests", "List pending transfer / deposit requests"),
+    BotCommand("card", "Show or start a card application"),
+    BotCommand("msg", "Send a portal message to a user"),
+    BotCommand("audit", "Recent ledger entries across all users"),
+    BotCommand("help", "List every command"),
+]
+
+
+async def on_startup(application):
+    """Register the command list and point the menu button at it."""
+    try:
+        await application.bot.set_my_commands(BOT_COMMANDS)
+        await application.bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+    except Exception:
+        # A transient Telegram error here shouldn't stop the bot from polling.
+        logger.warning("could not register bot commands", exc_info=True)
+
 
 class Command(BaseCommand):
     help = "Run the Telegram bot worker (long-polling)."
@@ -49,7 +76,7 @@ class Command(BaseCommand):
         if not token:
             raise CommandError("TELEGRAM_BOT_TOKEN is not set.")
 
-        application = ApplicationBuilder().token(token).build()
+        application = ApplicationBuilder().token(token).post_init(on_startup).build()
 
         # Auth gates run in group=-1, before every command / button press.
         application.add_handler(MessageHandler(filters.COMMAND, command_auth_gate), group=-1)
